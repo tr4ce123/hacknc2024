@@ -100,7 +100,7 @@ function Home() {
       {/* Video Player (Center) */}
       <div className="w-2/4 flex flex-col items-center">
         <img src={boltLogo} alt="Bolt Logo" className="w-24 h-24 mb-4" />
-        <div className="w-3/4 h-3/4 bg-black rounded-lg shadow-lg overflow-hidden border border-gray-300">
+        <div className="relative w-3/4 h-3/4 rounded-lg shadow-lg overflow-hidden border border-gray-300 bg-black custom-video-border">
           <video
             key={currentVideoUrl}
             ref={videoRef}
@@ -111,22 +111,21 @@ function Home() {
         </div>
       </div>
 
-      {/* Right Sidebar (Notes) */}
       <div className="w-1/4 p-4 bg-yellow-100 border-l border-yellow-300 notes">
         <h2 className="text-xl font-semibold mb-4 text-yellow-900">Notes</h2>
         <div className="space-y-2 text-yellow-900">
-          <ul className="list-disc list-inside">
-            <li>
+          <ul className="list-none pl-4">
+            <li className="custom-bullet">
               Summarizes lectures to <strong>quickly learn material</strong>.
             </li>
-            <li>
+            <li className="custom-bullet">
               Summarizes work meetings to{" "}
               <strong>easily define responsibilities</strong>.
             </li>
-            <li>
+            <li className="custom-bullet">
               Timestamps for key points in meeting:
-              <ul className="pl-6" style={{ listStyleType: "square" }}>
-                <li>
+              <ul className="list-none pl-6">
+                <li className="sub-bullet">
                   <span
                     onClick={() => seekToTimestamp(10)}
                     className="text-blue-600 cursor-pointer hover:underline"
@@ -137,7 +136,7 @@ function Home() {
                 </li>
               </ul>
             </li>
-            <li>Full tool for video analysis.</li>
+            <li className="custom-bullet">Full tool for video analysis.</li>
           </ul>
         </div>
       </div>

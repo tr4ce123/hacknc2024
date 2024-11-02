@@ -15,6 +15,54 @@ body {
   list-style-type: square;
 }
 
+.custom-bullet {
+  position: relative;
+  padding-left: 1.5em; /* Space for the custom bullet */
+  text-indent: -1em; /* Aligns multi-line text under the first line */
+}
+
+.custom-bullet::before {
+  content: "•"; /* Primary bullet symbol */
+  position: absolute;
+  left: 0; /* Align bullet at the start */
+  color: #b5651d; /* Set bullet color (adjust as needed) */
+}
+
+.sub-bullet {
+  position: relative;
+  padding-left: 2em; /* Additional indent for sub-bullets */
+  text-indent: -1em; /* Aligns multi-line text under the first line */
+}
+
+.custom-video-border {
+  position: relative;
+  padding: 1rem;
+  background: #ffffff;
+  border: 3px solid #fdd835; /* Inner yellow border */
+  border-radius: 15px;
+}
+
+.custom-video-border::before,
+.custom-video-border::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 20px;
+  border: 3px solid #ffeb3b; /* Outer border colors */
+  transform: scale(1.1);
+  z-index: -1;
+  opacity: 0.5;
+}
+
+.custom-video-border::after {
+  border-color: #fdd835; /* Inner layer of the outer border */
+  transform: scale(1.2);
+  opacity: 0.3;
+}
+
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
     monospace;
