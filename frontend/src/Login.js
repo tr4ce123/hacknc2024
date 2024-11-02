@@ -8,6 +8,7 @@ function Login() {
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
 
+  // Redirects to the Home page immediately without form validation
   const handleSubmit = (e) => {
     e.preventDefault();
     navigate("/home");
@@ -31,7 +32,6 @@ function Login() {
               placeholder="Username or Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              required
             />
           </div>
           <div className="flex items-center space-x-2 bg-yellow-50 rounded-md border border-yellow-300">
@@ -42,7 +42,6 @@ function Login() {
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required
             />
           </div>
           <div className="text-right">
