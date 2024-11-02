@@ -1,12 +1,12 @@
 import axios from "axios";
 import bcrypt from "bcrypt";
-import cors from "cors";
 import express from "express";
 import cors from "cors";
 import "dotenv/config";
 import { OAuth2Client } from "google-auth-library";
 import pkg from 'pg';
-import { AssemblyAI } from 'assemblyai';
+import fs from "fs";
+import OpenAI from "openai";
 
 const { Pool } = pkg;
 const pool = new Pool({
@@ -38,9 +38,7 @@ pool.connect()
 
 
 const oauth_client = new OAuth2Client(process.env.OAUTH_CLIENT_ID);
-const assembly_client = new AssemblyAI({
-  apiKey: `${process.env.ASSEMBLY_API_KEY}`,
-})
+const openai_client = new OpenAI({apiKey: `${process.env.OPENAI_API_KEY}`});
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -55,20 +53,21 @@ app.use(cors({
 
 
 
-// ASSEMBLY TESTING
+// Audio TESTING
 const audioUrl =
   'https://assembly.ai/sports_injuries.mp3'
 
-const config = {
-  audio_url: audioUrl
-}
 
 app.use("/transcribe", async (req, res) => {
-  
+  const transcription = await openai_client.audio.transcriptions.create({
+    file: audioUrl,
+    model: "whisper-1",
+    response_format: "verbose_json",
+    timestamp_granularities: ["word"],
+  });
 
 
-  const transcript = await assembly_client.transcripts.transcribe(config);
-  res.json({message: transcript.text})
+  res.json({message: transcription.text})
 });
 
 app.post("/register", async (req, res) => {
