@@ -2,22 +2,23 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaUser, FaLock } from "react-icons/fa";
+import GoogleAuth from "./GoogleAuth";
 
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
 
-  const CLIENT_ID =
-    "942733539949-p4svlgoif7doutrll8gru20vu4b558i5.apps.googleusercontent.com";
+  // const CLIENT_ID =
+  //   "942733539949-p4svlgoif7doutrll8gru20vu4b558i5.apps.googleusercontent.com";
 
-  useEffect(() => {
-    window.gapi.load("auth2", () => {
-      window.gapi.auth2.init({
-        client_id: CLIENT_ID,
-      });
-    });
-  }, []);
+  // useEffect(() => {
+  //   window.gapi.load("auth2", () => {
+  //     window.gapi.auth2.init({
+  //       client_id: CLIENT_ID,
+  //     });
+  //   });
+  // }, []);
 
   const handleGoogleSignIn = async () => {
     const auth2 = window.gapi.auth2.getAuthInstance();
@@ -111,6 +112,7 @@ function Login() {
             Register!
           </a>
         </p>
+        <GoogleAuth></GoogleAuth>
       </div>
     </div>
   );
