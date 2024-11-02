@@ -5,8 +5,10 @@ import cors from "cors";
 import "dotenv/config";
 import { OAuth2Client } from "google-auth-library";
 import pkg from 'pg';
-import fs from "fs";
-import OpenAI from "openai";
+import path from 'path';
+import { fileURLToPath } from "url";
+import FormData from 'form-data'
+
 
 const { Pool } = pkg;
 const pool = new Pool({
@@ -38,7 +40,6 @@ pool.connect()
 
 
 const oauth_client = new OAuth2Client(process.env.OAUTH_CLIENT_ID);
-const openai_client = new OpenAI({apiKey: `${process.env.OPENAI_API_KEY}`});
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -52,22 +53,70 @@ app.use(cors({
 }))
 
 
-
-// Audio TESTING
-const audioUrl =
-  'https://assembly.ai/sports_injuries.mp3'
-
-
-app.use("/transcribe", async (req, res) => {
-  const transcription = await openai_client.audio.transcriptions.create({
-    file: audioUrl,
-    model: "whisper-1",
-    response_format: "verbose_json",
-    timestamp_granularities: ["word"],
-  });
+// Directory names for parsing the audio URL
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 
-  res.json({message: transcription.text})
+app.post('/transcribe', async (req, res) => {
+  const { audioUrl } = req.body;
+
+  if (!audioUrl) {
+    return res.status(400).json({ error: 'No audioUrl provided in the request body.' });
+  }
+
+  // Get the URL from the request body and parse it
+  try {
+    new URL(audioUrl);
+  } 
+  catch (error) {
+    return res.status(400).json({ error: 'Invalid URL format.' });
+  }
+
+  try {
+    // Fetching the audio stream from the URL given
+    const response = await axios.get(audioUrl, { responseType: 'stream' });
+
+    // Extract the fields from the URL to pass into the API call
+    const urlPath = new URL(audioUrl).pathname;
+    const filename = path.basename(urlPath) || 'audio.mp3';
+
+    // Get our form data to pass into the API call
+    const formData = new FormData();
+    formData.append('file', response.data, {
+      filename: filename,
+      contentType: response.headers['content-type'] || 'audio/mpeg',
+    });
+    formData.append('model', 'whisper-1');
+    formData.append('response_format', 'verbose_json');
+
+
+    console.log("Requesting transcription");
+    // Send our transcription request to OpenAI
+    const transcriptionResponse = await axios.post(
+      'https://api.openai.com/v1/audio/transcriptions',
+      formData,
+      {
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+          ...formData.getHeaders(),
+        },
+        maxBodyLength: Infinity,
+        maxContentLength: Infinity,
+      }
+    );
+
+    console.log("Transcription successful");
+
+    // Send the transcription with timestamps back to the frontend
+    return res.status(200).json({
+      message: transcriptionResponse.data.text,
+      segments: transcriptionResponse.data.segments,
+    });
+  } 
+  catch (error) {
+    return res.status(500).json({ error: 'An error occurred during transcription.' });
+  }
 });
 
 app.post("/register", async (req, res) => {
@@ -86,12 +135,13 @@ app.post("/register", async (req, res) => {
     // await pool.query('INSERT INTO users (id_token, username) VALUES ($1, $2)', [hashedID, username]);
     // res.status(200).json({ message: 'User registered successfully' });
 
-  } catch (err) {
+  } 
+  catch (err) {
     // SQL UNIQUE CONSTRAINT ERROR
     if (err.code === '23505') {
       return res.status(400).json({ message: 'User already in database' });
     }
-    res.status(500).send("Registration Failed");
+    return res.status(500).send("Registration Failed");
   }
 });
 
@@ -114,13 +164,14 @@ app.post("/login", async (req, res) => {
     console.log("User Info:", user);
 
 
-    res.status(200).json({message: "Successfully registered", user});
-  } catch (err) {
-    console.error("Error during login:", err);
-    res.status(500).json({ error: "Login Failed" });
+    return res.status(200).json({message: "Successfully registered", user});
+  } 
+  catch (err) {
+    return res.status(500).json({ error: "Login Failed" });
   }
 });
 
+// Function that verifies user based on Google OAuth token
 async function verify(userToken) {
   try {
     const ticket = await oauth_client.verifyIdToken({
