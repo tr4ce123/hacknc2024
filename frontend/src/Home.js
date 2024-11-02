@@ -3,7 +3,7 @@ import { FaPlus } from "react-icons/fa";
 import boltLogo from "./assets/lightningBolt.png";
 
 function Home() {
-  const vods = [
+  const [vods, setVods] = useState([
     {
       id: 1,
       title: "VOD 1",
@@ -15,9 +15,11 @@ function Home() {
       title: "VOD 3",
       url: "https://www.w3schools.com/html/mov_bbb.mp4",
     },
-  ];
+  ]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newVodTitle, setNewVodTitle] = useState("");
+  const [newVodFile, setNewVodFile] = useState(null);
   const [currentVideoUrl, setCurrentVideoUrl] = useState(vods[0].url);
   const videoRef = useRef(null);
 
@@ -37,8 +39,24 @@ function Home() {
     }
   };
 
+  const handleAddVod = (e) => {
+    e.preventDefault();
+    if (newVodTitle && newVodFile) {
+      const newVod = {
+        id: vods.length + 1,
+        title: newVodTitle,
+        url: URL.createObjectURL(newVodFile), // Create a temporary URL for the file
+      };
+      setVods([...vods, newVod]); // Add new VOD to state
+      setIsModalOpen(false); // Close modal
+      setNewVodTitle(""); // Reset title input
+      setNewVodFile(null); // Reset file input
+    }
+  };
+
   return (
     <div className="flex h-screen bg-yellow-50">
+      {/* Left Sidebar (VODs) */}
       <div className="w-1/4 p-4 bg-yellow-100 border-r border-yellow-300">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold text-yellow-900">VODs</h2>
@@ -62,6 +80,7 @@ function Home() {
         </ul>
       </div>
 
+      {/* Video Player (Center) */}
       <div className="w-2/4 flex flex-col items-center">
         <img src={boltLogo} alt="Bolt Logo" className="w-24 h-24 mb-4" />
         <div className="w-3/4 h-3/4 bg-black rounded-lg shadow-lg overflow-hidden border border-gray-300">
@@ -75,7 +94,8 @@ function Home() {
         </div>
       </div>
 
-      <div className="w-1/4 p-4 bg-yellow-100 border-l border-yellow-300">
+      {/* Right Sidebar (Notes) */}
+      <div className="w-1/4 p-4 bg-yellow-100 border-l border-yellow-300 notes">
         <h2 className="text-xl font-semibold mb-4 text-yellow-900">Notes</h2>
         <div className="space-y-2 text-yellow-900">
           <ul className="list-disc list-inside">
@@ -88,7 +108,7 @@ function Home() {
             </li>
             <li>
               Timestamps for key points in meeting:
-              <ul className="list-disc pl-6">
+              <ul className="pl-6" style={{ listStyleType: "square" }}>
                 <li>
                   <span
                     onClick={() => seekToTimestamp(10)}
@@ -105,19 +125,22 @@ function Home() {
         </div>
       </div>
 
+      {/* Modal for Adding New VOD */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
           <div className="w-1/3 p-6 bg-white rounded-lg shadow-lg">
             <h3 className="text-xl font-semibold mb-4 text-yellow-900">
               Add New VOD
             </h3>
-            <form>
+            <form onSubmit={handleAddVod}>
               <div className="mb-4">
                 <label className="block text-yellow-800 mb-1">VOD Title</label>
                 <input
                   type="text"
                   className="w-full px-3 py-2 border border-yellow-300 rounded bg-white"
                   placeholder="Enter title"
+                  value={newVodTitle}
+                  onChange={(e) => setNewVodTitle(e.target.value)}
                 />
               </div>
 
@@ -129,6 +152,7 @@ function Home() {
                   type="file"
                   accept="video/mp4"
                   className="w-full px-3 py-2 border border-yellow-300 rounded"
+                  onChange={(e) => setNewVodFile(e.target.files[0])}
                 />
               </div>
               <div className="flex justify-end space-x-2">
