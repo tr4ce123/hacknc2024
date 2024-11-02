@@ -56,7 +56,7 @@ app.post("/login", async (req, res) => {
 
     // Add logic here to check if user exists in database
 
-    res.status(200).json({ message: "Login Successful!", user });
+    res.status(200).json({ message: "Login Successful!" }, user);
   } catch (err) {
     console.error("Error during login:", err);
     res.status(500).json({ error: "Login Failed" });
