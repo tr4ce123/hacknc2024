@@ -1,5 +1,5 @@
 // src/Login.js
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaUser, FaLock } from "react-icons/fa";
 
@@ -8,7 +8,6 @@ function Login() {
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
 
-  // Redirects to the Home page immediately without form validation
   const handleSubmit = (e) => {
     e.preventDefault();
     navigate("/home");
@@ -57,7 +56,6 @@ function Login() {
           </button>
           <button
             type="button"
-            onClick={handleGoogleSignIn}
             className="flex items-center justify-center w-full py-2 mt-4 space-x-2 text-yellow-900 bg-black rounded-md hover:bg-gray-800"
           >
             <img
