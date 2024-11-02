@@ -2,6 +2,7 @@ import axios from "axios";
 import bcrypt from "bcrypt";
 import cors from "cors";
 import express from "express";
+import cors from "cors";
 import "dotenv/config";
 import { OAuth2Client } from "google-auth-library";
 import pkg from 'pg';
@@ -42,7 +43,7 @@ const assembly_client = new AssemblyAI({
 })
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 
 // Middleware
 app.use(express.static("public"));
@@ -106,13 +107,18 @@ app.post("/login", async (req, res) => {
 
     // Verify user
     const user = await verify(id_token);
+
+    if (!user) {
+      return res.status(400).json({ error: "Invalid ID Token" });
+    }
+
     console.log("User Info:", user);
 
 
     res.status(200).json({message: "Successfully registered", user});
   } catch (err) {
     console.error("Error during login:", err);
-    res.status(500).send("Login Failed");
+    res.status(500).json({ error: "Login Failed" });
   }
 });
 
@@ -122,11 +128,11 @@ async function verify(userToken) {
       idToken: userToken,
       audience: process.env.OAUTH_CLIENT_ID,
     });
-
     const payload = ticket.getPayload();
-    return payload; 
+    return payload;
   } catch (err) {
     console.error("Error verifying ID token:", err);
+    return null;
   }
 }
 

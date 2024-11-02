@@ -1,5 +1,5 @@
 // src/Login.js
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaUser, FaLock } from "react-icons/fa";
 
@@ -7,6 +7,43 @@ function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
+
+  const CLIENT_ID =
+    "942733539949-p4svlgoif7doutrll8gru20vu4b558i5.apps.googleusercontent.com";
+
+  useEffect(() => {
+    window.gapi.load("auth2", () => {
+      window.gapi.auth2.init({
+        client_id: CLIENT_ID,
+      });
+    });
+  }, []);
+
+  const handleGoogleSignIn = async () => {
+    const auth2 = window.gapi.auth2.getAuthInstance();
+    try {
+      const googleUser = await auth2.signIn();
+      const idToken = googleUser.getAuthResponse().id_token;
+
+      // Send the ID token to the backend
+      const response = await fetch("http://localhost:8080/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id_token: idToken }),
+      });
+
+      if (response.ok) {
+        console.log("Login Successful");
+        navigate("/home");
+      } else {
+        console.error("Login Failed");
+      }
+    } catch (error) {
+      console.error("Google sign-in error:", error);
+    }
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -58,6 +95,7 @@ function Login() {
           </button>
           <button
             type="button"
+            onClick={handleGoogleSignIn}
             className="flex items-center justify-center w-full py-2 mt-4 space-x-2 text-yellow-900 bg-black rounded-md hover:bg-gray-800"
           >
             <img
