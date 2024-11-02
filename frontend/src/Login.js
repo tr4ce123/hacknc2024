@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaUser, FaLock } from "react-icons/fa";
 import { supabase } from "./supabaseClient";
@@ -7,6 +7,24 @@ function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
+
+  useEffect(() => {
+
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        console.log(event, session);
+        if (event === "SIGNED_IN" && session) {
+          sessionStorage.setItem("auth", "true");
+          navigate("/home");
+        }
+      }
+    );
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    }
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -19,9 +37,6 @@ function Login() {
 
     if (error) {
       console.error("Error signing in:", error.message);
-    } else {
-      sessionStorage.setItem("auth", "true");
-      navigate("/home");
     }
   };
 
@@ -35,22 +50,19 @@ function Login() {
 
     if (error) {
       console.error("Error resetting password:", error.message);
-    } else {
-      console.log("Password reset email sent:", data);
     }
   };
 
   const handleGoogleLogin = async () => {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
+      options: {
+        redirectTo: "http://localhost:3000/home",
+      },
     });
 
     if (error) {
       console.error("Error signing in:", error.message);
-    } else {
-      // Handle Google login flow / session somehow
-      // sessionStorage.setItem("auth", "true");
-      // navigate("/home");
     }
   };
 

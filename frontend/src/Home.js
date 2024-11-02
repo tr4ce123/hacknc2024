@@ -1,6 +1,9 @@
 import React, { useState, useRef } from "react";
 import { FaPlus } from "react-icons/fa";
 import boltLogo from "./assets/lightningBolt.png";
+import { supabase } from "./supabaseClient";
+import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 
 function Home() {
   const [vods, setVods] = useState([
@@ -21,7 +24,29 @@ function Home() {
   const [newVodTitle, setNewVodTitle] = useState("");
   const [newVodFile, setNewVodFile] = useState(null);
   const [currentVideoUrl, setCurrentVideoUrl] = useState(vods[0].url);
+  const [isSignOutModalOpen, setIsSignOutModalOpen] = useState(false);
+  const toggleSignOutModal = () => setIsSignOutModalOpen(!isSignOutModalOpen);
+
   const videoRef = useRef(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        console.log(event, session);
+        if (event === "SIGNED_OUT" && session) {
+          sessionStorage.setItem("auth", "false");
+          navigate("/login");
+        }
+      }
+    );
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    }
+  }, [navigate]);
+
+
 
   const toggleModal = () => setIsModalOpen(!isModalOpen);
 
@@ -52,6 +77,20 @@ function Home() {
       setIsModalOpen(false);
       setNewVodTitle("");
       setNewVodFile(null);
+    }
+  };
+
+  const handleSignOut = async (e) => {
+    e.preventDefault();
+
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      console.error("Error logging out:", error.message);
+    } else {
+      sessionStorage.setItem("auth", "false");
+      navigate("/login");
+      console.log("Signed out successfully");
     }
   };
 
@@ -99,7 +138,24 @@ function Home() {
 
       {/* Right Sidebar (Notes) */}
       <div className="w-1/4 p-4 bg-yellow-100 border-l border-yellow-300 notes">
-        <h2 className="text-xl font-semibold mb-4 text-yellow-900">Notes</h2>
+        {/* Header with Title and Avatar */}
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold text-yellow-900">Notes</h2>
+          <div
+            className="avatar cursor-pointer"
+            onClick={toggleSignOutModal}
+            title="Sign Out"
+          >
+            <div className="ring-primary ring-offset-base-100 w-12 rounded-full ring ring-offset-2">
+              <img
+                src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp"
+                alt="User Avatar"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Notes Content */}
         <div className="space-y-2 text-yellow-900">
           <ul className="list-disc list-inside">
             <li>
@@ -177,6 +233,37 @@ function Home() {
           </div>
         </div>
       )}
+
+      {/* Model for signing out */}
+      {isSignOutModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="w-1/3 p-6 bg-white rounded-lg shadow-lg">
+            <h3 className="text-xl font-semibold mb-4 text-yellow-900">
+              Sign Out
+            </h3>
+            <p className="mb-6 text-yellow-800">
+              Are you sure you want to sign out?
+            </p>
+            <div className="flex justify-end space-x-2">
+              <button
+                type="button"
+                onClick={toggleSignOutModal}
+                className="px-4 py-2 bg-gray-200 text-yellow-900 rounded hover:bg-gray-300"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
