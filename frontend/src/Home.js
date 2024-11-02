@@ -1,6 +1,11 @@
 import React, { useState, useRef } from "react";
 import { FaPlus } from "react-icons/fa";
+import { supabase } from "./supabaseClient";
+import axios from "axios";
 import boltLogo from "./assets/lightningBolt.png";
+
+
+const backendURL = process.env.REACT_APP_BACKEND_URL;
 
 function Home() {
   const [vods, setVods] = useState([
@@ -39,7 +44,7 @@ function Home() {
     }
   };
 
-  const handleAddVod = (e) => {
+  const handleAddVod = async (e) => {
     e.preventDefault();
     if (newVodTitle && newVodFile) {
       const newVod = {
@@ -47,6 +52,15 @@ function Home() {
         title: newVodTitle,
         url: URL.createObjectURL(newVodFile),
       };
+
+      const user_id = await supabase.auth.getSession().then(({data, error}) => {
+        return data.session.user.id;
+      })
+      const response = await axios.post(`${backendURL}/add-vod`, {
+        id: user_id,
+        title: newVod.title,
+        video_url: newVod.url.split("blob:")[1],
+      })
       setVods([...vods, newVod]);
       setCurrentVideoUrl(newVod.url);
       setIsModalOpen(false);

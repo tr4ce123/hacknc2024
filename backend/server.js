@@ -49,20 +49,6 @@ pool
       );
 
     `);
-    // Example values for testing
-    const userId = "1f585e5e-055a-423d-99c0-0847acaecf41"; // Fake UUID for user_id
-    const title = "Sample VOD Title";
-    const videoUrl = "http://example.com/sample.mp4";
-
-    try {
-      await pool.query(
-        "INSERT INTO public.vods (id, title, video_url) VALUES ($1, $2, $3)",
-        [userId, title, videoUrl]
-      );
-      console.log("VOD inserted successfully");
-    } catch (error) {
-      console.error("Error inserting VOD:", error);
-    }
     console.log("Tables created successfully.");
   } catch (error) {
     console.error("Error creating tables:", error);
@@ -78,8 +64,9 @@ app.use(express.static("public"));
 app.use(express.json());
 app.use(
   cors({
-    origin: `${process.env.FRONTEND_URL}`,
-    allowedHeaders: ["GET", "POST"],
+    origin: process.env.FRONTEND_URL,
+    methods: ["GET", "POST", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
@@ -192,10 +179,10 @@ app.post("/login", async (req, res) => {
 // Add VOD
 app.post("/add-vod", async (req, res) => {
   try {
-    const { user_id, title, video_url } = req.body;
+    const { id, title, video_url } = req.body;
     const result = await pool.query(
-      "INSERT INTO vods (user_id, title, video_url) VALUES ($1, $2, $3) RETURNING *",
-      [user_id, title, video_url]
+      "INSERT INTO vods (id, title, video_url) VALUES ($1, $2, $3) RETURNING *",
+      [id, title, video_url]
     );
 
     res
