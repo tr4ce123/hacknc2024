@@ -4,7 +4,7 @@ import { FaUser, FaLock } from "react-icons/fa";
 import GoogleAuth from "./GoogleAuth";
 import { supabase } from "./supabaseClient";
 
-function Login() {
+function Signup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
@@ -13,7 +13,7 @@ function Login() {
     e.preventDefault();
 
     // Implement Supabase email/password authentication
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
     });
@@ -26,41 +26,14 @@ function Login() {
     }
   };
 
-  const handleForgotPassword = async (e) => {
-    e.preventDefault();
-
-    // Implement Supabase forgot password
-    const { data, error } = await supabase.auth.api.resetPasswordForEmail(email);
-
-    if (error) {
-      console.error('Error resetting password:', error.message);
-    } else {
-      console.log('Password reset email sent:', data);
-    }
-  }
-
-  const handleGoogleLogin = async () => {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-    });
-
-    if (error) {
-      console.error('Error signing in:', error.message);
-    } else {
-      // Handle Google login flow / session somehow
-      // sessionStorage.setItem("auth", "true");
-      // navigate("/home");
-    }
-  }
-
   return (
     <div className="flex items-center justify-center min-h-screen bg-yellow-50">
       <div className="w-full max-w-md p-8 space-y-4 bg-yellow-100 rounded-lg shadow-lg">
         <h2 className="text-3xl font-bold text-center text-yellow-900">
-          Login
+          Sign Up
         </h2>
         <p className="text-center text-yellow-800">
-          Please enter your Login and your Password
+          Please enter your email and password to sign up
         </p>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex items-center space-x-2 bg-yellow-50 rounded-md border border-yellow-300">
@@ -85,37 +58,21 @@ function Login() {
               required
             />
           </div>
-          <div className="text-right">
-            <a href="#" className="text-sm text-yellow-800 hover:underline">
-              Forgot password?
-            </a>
-          </div>
           <button
             type="submit"
             className="w-full py-2 font-semibold text-yellow-900 bg-yellow-200 rounded-md hover:bg-yellow-300"
           >
-            Login
+            Sign Up
           </button>
           <div className="flex items-center justify-center mt-4">
             <span className="text-yellow-800 mr-2">OR</span>
           </div>
-          <button
-            type="button"
-            onClick={handleGoogleLogin}
-            className="flex items-center justify-center w-full py-2 mt-4 space-x-2 text-white bg-red-600 rounded-md hover:bg-red-700"
-          >
-            <img
-              src="https://img.icons8.com/color/16/000000/google-logo.png"
-              alt="Google icon"
-              className="w-5 h-5"
-            />
-            <span>Sign in with Google</span>
-          </button>
+          <GoogleAuth />
         </form>
         <p className="text-center text-yellow-800">
-          Not a member yet?{" "}
-          <a href="/signup" className="text-yellow-600 hover:underline">
-            Register!
+          Already have an account?{" "}
+          <a href="/login" className="text-yellow-600 hover:underline">
+            Log In!
           </a>
         </p>
       </div>
@@ -123,4 +80,4 @@ function Login() {
   );
 }
 
-export default Login;
+export default Signup;

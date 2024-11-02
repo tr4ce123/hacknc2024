@@ -1,33 +1,37 @@
 import React from 'react';
-import { GoogleLogin } from '@react-oauth/google';
-import axios from 'axios';
-import {jwtDecode as jwt_decode} from 'jwt-decode';
+import { supabase } from './supabaseClient';
+import { useNavigate } from 'react-router-dom';
 
-const GoogleAuth = () => {
-    const handleSuccess = async (response) => {
-        try {
-        const { id_token } = response;
-        const { data } = await axios.post('http://localhost:8080/login', { id_token });
-        const { token } = data;
-        const user = jwt_decode(token);
-        console.log('User Info:', user);
-        } catch (error) {
-        console.error('Google sign-in error:', error);
-        }
-    };
-    
-    return (
-        <GoogleLogin
-        clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID}
-        onSuccess={handleSuccess}
-        onFailure={console.error}
-        render={({ onClick }) => (
-            <button onClick={onClick} className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-            Login with Google
-            </button>
-        )}
-        />
-    );
+function GoogleAuth() {
+    const navigate = useNavigate();
+
+  const handleGoogleLogin = async () => {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+    });
+
+    if (error) {
+        console.error('Error signing in:', error.message);
+      } else {
+        sessionStorage.setItem("auth", "true");
+        navigate("/home");
+      }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={handleGoogleLogin}
+      className="flex items-center justify-center w-full py-2 mt-4 space-x-2 text-white bg-red-600 rounded-md hover:bg-red-700"
+    >
+      <img
+        src="https://img.icons8.com/color/16/000000/google-logo.png"
+        alt="Google icon"
+        className="w-5 h-5"
+      />
+      <span>Sign in with Google</span>
+    </button>
+  );
 }
 
 export default GoogleAuth;
