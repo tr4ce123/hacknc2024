@@ -56,11 +56,16 @@ function Home() {
       const user_id = await supabase.auth.getSession().then(({data, error}) => {
         return data.session.user.id;
       })
-      const response = await axios.post(`${backendURL}/add-vod`, {
-        id: user_id,
-        title: newVod.title,
-        video_url: newVod.url.split("blob:")[1],
-      })
+
+      try {
+        await axios.post(`${backendURL}/add-vod`, {
+          id: user_id,
+          title: newVod.title,
+          video_url: newVod.url.split("blob:")[1],
+        })
+      } catch(err) {
+        console.error("Unable to add vod", err);
+      }
       setVods([...vods, newVod]);
       setCurrentVideoUrl(newVod.url);
       setIsModalOpen(false);
