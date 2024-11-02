@@ -1,14 +1,74 @@
-import axios from "axios"
+import axios from "axios";
+import bcrypt from "bcrypt";
+import cors from "cors";
 import express from "express";
 import "dotenv/config";
 import { OAuth2Client } from "google-auth-library";
+import pkg from 'pg';
+import { AssemblyAI } from 'assemblyai';
 
-const client = new OAuth2Client(process.env.OAUTH_CLIENT_ID);
+const { Pool } = pkg;
+const pool = new Pool({
+  connectionString: process.env.SUPABASE_URL,
+  ssl: {
+    rejectUnauthorized: false,
+  }
+});
+pool.connect()
+.then(() => {console.log("Connected to DB")})
+.catch(() => {console.log("Didn't connect")})
+
+
+// (async () => {
+//   try {
+//     await pool.query(`
+//       CREATE TABLE IF NOT EXISTS users (
+//         id SERIAL PRIMARY KEY,
+//         username VARCHAR(100) UNIQUE NOT NULL,
+//         password VARCHAR(100) NOT NULL
+//       )
+//     `);
+
+//     console.log("Tables created successfully.");
+//   } catch (error) {
+//     console.error("Error creating tables:", error);
+//   }
+// })();
+
+
+const oauth_client = new OAuth2Client(process.env.OAUTH_CLIENT_ID);
+const assembly_client = new AssemblyAI({
+  apiKey: `${process.env.ASSEMBLY_API_KEY}`,
+})
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Middleware
 app.use(express.static("public"));
 app.use(express.json());
+app.use(cors({
+  origin: `${process.env.FRONTEND_URL}`,
+  allowedHeaders: ["GET", "POST"],
+}))
+
+
+
+// ASSEMBLY TESTING
+const audioUrl =
+  'https://assembly.ai/sports_injuries.mp3'
+
+const config = {
+  audio_url: audioUrl
+}
+
+app.use("/transcribe", async (req, res) => {
+  
+
+
+  const transcript = await assembly_client.transcripts.transcribe(config);
+  res.json({message: transcript.text})
+});
 
 app.post("/register", async (req, res) => {
   try {
@@ -21,12 +81,16 @@ app.post("/register", async (req, res) => {
 
     const user = await verify(id_token);
 
-    // If not found in database, create account
-    // else just authenticate them
 
-    res.status(200).json({message: "Registration Successful!", user});
+    // const hashedID = bcrypt.hashSync(id_token, 10);
+    // await pool.query('INSERT INTO users (id_token, username) VALUES ($1, $2)', [hashedID, username]);
+    // res.status(200).json({ message: 'User registered successfully' });
+
   } catch (err) {
-    console.error("Error during registration:", err);
+    // SQL UNIQUE CONSTRAINT ERROR
+    if (err.code === '23505') {
+      return res.status(400).json({ message: 'User already in database' });
+    }
     res.status(500).send("Registration Failed");
   }
 });
@@ -40,12 +104,12 @@ app.post("/login", async (req, res) => {
       return res.status(400).json({ error: "No ID Token provided" });
     }
 
+    // Verify user
     const user = await verify(id_token);
     console.log("User Info:", user);
 
-    // Check if user exists in database, etc.
 
-    res.status(200).json({ message: "Login Successful!"}, user);
+    res.status(200).json({message: "Successfully registered", user});
   } catch (err) {
     console.error("Error during login:", err);
     res.status(500).send("Login Failed");
@@ -54,7 +118,7 @@ app.post("/login", async (req, res) => {
 
 async function verify(userToken) {
   try {
-    const ticket = await client.verifyIdToken({
+    const ticket = await oauth_client.verifyIdToken({
       idToken: userToken,
       audience: process.env.OAUTH_CLIENT_ID,
     });
