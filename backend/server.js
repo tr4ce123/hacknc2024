@@ -1,12 +1,14 @@
-import axios from "axios"
+import axios from "axios";
 import express from "express";
+import cors from "cors";
 import "dotenv/config";
 import { OAuth2Client } from "google-auth-library";
 
 const client = new OAuth2Client(process.env.OAUTH_CLIENT_ID);
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 
+app.use(cors());
 app.use(express.static("public"));
 app.use(express.json());
 
@@ -21,13 +23,17 @@ app.post("/register", async (req, res) => {
 
     const user = await verify(id_token);
 
-    // If not found in database, create account
-    // else just authenticate them
+    if (!user) {
+      return res.status(400).json({ error: "Invalid ID Token" });
+    }
 
-    res.status(200).send("Registration Successful!");
+    // Add logic here to check if user exists in database
+    // If not found, create account, otherwise authenticate them
+
+    res.status(200).json({ message: "Registration Successful!", user });
   } catch (err) {
     console.error("Error during registration:", err);
-    res.status(500).send("Registration Failed");
+    res.status(500).json({ error: "Registration Failed" });
   }
 });
 
@@ -41,14 +47,19 @@ app.post("/login", async (req, res) => {
     }
 
     const user = await verify(id_token);
+
+    if (!user) {
+      return res.status(400).json({ error: "Invalid ID Token" });
+    }
+
     console.log("User Info:", user);
 
-    // Check if user exists in database, etc.
+    // Add logic here to check if user exists in database
 
-    res.status(200).send("Login Successful!");
+    res.status(200).json({ message: "Login Successful!", user });
   } catch (err) {
     console.error("Error during login:", err);
-    res.status(500).send("Login Failed");
+    res.status(500).json({ error: "Login Failed" });
   }
 });
 
@@ -58,11 +69,11 @@ async function verify(userToken) {
       idToken: userToken,
       audience: process.env.OAUTH_CLIENT_ID,
     });
-
     const payload = ticket.getPayload();
-    return payload; 
+    return payload;
   } catch (err) {
     console.error("Error verifying ID token:", err);
+    return null;
   }
 }
 
