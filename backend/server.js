@@ -1,18 +1,16 @@
 import axios from "axios"
 import express from "express"
-import dotenv from "dotenv"
+import 'dotenv/config'
 import { OAuth2Client } from "google-auth-library"
 
-dotenv.config();
 const client = new OAuth2Client();
 const app = express()
-const PORT = process.env.PORT
+const PORT = process.env.PORT;
 
 app.use(express.static('public'))
 app.use(express.json());
 
 app.use('/', (req, res) => {
-   res.send("Hello")
 })
 
 app.post("/register", async (req, res) => {
@@ -24,8 +22,8 @@ app.post("/register", async (req, res) => {
       return res.status(400).json({error: "No ID Token"})
     }
 
-    const user = await verify(id_token)
-    console.log(user)
+    // const user = await verify(id_token)
+    // console.log(user)
     
     // If not found in database, create account
 
@@ -64,5 +62,5 @@ async function verify(userToken) {
 
 
 app.listen(PORT, () => {
-  console.log("SERVER IS ON")
+  console.log("SERVER IS ON PORT", PORT)
 })
