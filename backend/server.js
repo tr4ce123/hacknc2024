@@ -24,7 +24,7 @@ app.post("/register", async (req, res) => {
     // If not found in database, create account
     // else just authenticate them
 
-    res.status(200).send("Registration Successful!");
+    res.status(200).json({message: "Registration Successful!", user});
   } catch (err) {
     console.error("Error during registration:", err);
     res.status(500).send("Registration Failed");
@@ -45,7 +45,7 @@ app.post("/login", async (req, res) => {
 
     // Check if user exists in database, etc.
 
-    res.status(200).send("Login Successful!");
+    res.status(200).json({ message: "Login Successful!"}, user);
   } catch (err) {
     console.error("Error during login:", err);
     res.status(500).send("Login Failed");
