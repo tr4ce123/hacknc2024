@@ -45,12 +45,13 @@ function Home() {
       const newVod = {
         id: vods.length + 1,
         title: newVodTitle,
-        url: URL.createObjectURL(newVodFile), // Create a temporary URL for the file
+        url: URL.createObjectURL(newVodFile),
       };
-      setVods([...vods, newVod]); // Add new VOD to state
-      setIsModalOpen(false); // Close modal
-      setNewVodTitle(""); // Reset title input
-      setNewVodFile(null); // Reset file input
+      setVods([...vods, newVod]);
+      setCurrentVideoUrl(newVod.url);
+      setIsModalOpen(false);
+      setNewVodTitle("");
+      setNewVodFile(null);
     }
   };
 
@@ -71,7 +72,9 @@ function Home() {
           {vods.map((vod) => (
             <li
               key={vod.id}
-              className="p-2 bg-white rounded shadow cursor-pointer hover:bg-yellow-200"
+              className={`p-2 rounded shadow cursor-pointer hover:bg-yellow-200 ${
+                vod.url === currentVideoUrl ? "bg-yellow-300" : "bg-white"
+              }`}
               onClick={() => changeVideo(vod.url)}
             >
               {vod.title}
