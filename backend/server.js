@@ -49,20 +49,6 @@ pool
       );
 
     `);
-    // Example values for testing
-    const userId = "1f585e5e-055a-423d-99c0-0847acaecf41"; // Fake UUID for user_id
-    const title = "Sample VOD Title";
-    const videoUrl = "http://example.com/sample.mp4";
-
-    try {
-      await pool.query(
-        "INSERT INTO public.vods (id, title, video_url) VALUES ($1, $2, $3)",
-        [userId, title, videoUrl]
-      );
-      console.log("VOD inserted successfully");
-    } catch (error) {
-      console.error("Error inserting VOD:", error);
-    }
     console.log("Tables created successfully.");
   } catch (error) {
     console.error("Error creating tables:", error);
