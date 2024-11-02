@@ -30,31 +30,39 @@ pool
 (async () => {
   try {
     await pool.query(`
-      CREATE TABLE IF NOT EXISTS users (
-        user_id SERIAL PRIMARY KEY,
-        uid VARCHAR(100) UNIQUE NOT NULL,
-        username VARCHAR(100) UNIQUE NOT NULL,
-        password VARCHAR(100) NOT NULL
-      );
 
-      CREATE TABLE IF NOT EXISTS vods (
+      CREATE TABLE IF NOT EXISTS public.vods (
         vod_id SERIAL PRIMARY KEY,
-        user_id INTEGER REFERENCES users(user_id) ON DELETE CASCADE,
+        id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
         title VARCHAR(255) NOT NULL,
         video_url TEXT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
-      CREATE TABLE IF NOT EXISTS notes (
+      CREATE TABLE IF NOT EXISTS public.notes (
         note_id SERIAL PRIMARY KEY,
-        vod_id INTEGER REFERENCES vods(vod_id) ON DELETE CASCADE,
+        vod_id INTEGER REFERENCES public.vods(vod_id) ON DELETE CASCADE,
         text TEXT NOT NULL,
         timestamp INTEGER,
-        parent_note_id INTEGER REFERENCES notes(note_id) ON DELETE CASCADE,
+        parent_note_id INTEGER REFERENCES public.notes(note_id) ON DELETE CASCADE,
         bullet_order INTEGER
       );
-    `);
 
+    `);
+    // Example values for testing
+    const userId = "1f585e5e-055a-423d-99c0-0847acaecf41"; // Fake UUID for user_id
+    const title = "Sample VOD Title";
+    const videoUrl = "http://example.com/sample.mp4";
+
+    try {
+      await pool.query(
+        "INSERT INTO public.vods (id, title, video_url) VALUES ($1, $2, $3)",
+        [userId, title, videoUrl]
+      );
+      console.log("VOD inserted successfully");
+    } catch (error) {
+      console.error("Error inserting VOD:", error);
+    }
     console.log("Tables created successfully.");
   } catch (error) {
     console.error("Error creating tables:", error);
