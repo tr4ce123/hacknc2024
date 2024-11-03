@@ -90,45 +90,43 @@ function Home() {
           .toLowerCase();
 
         // Upload the video file to Supabase Storage
-        const { data, error: uploadError } = await supabase.storage
+        const uploadPayload = await supabase.storage
           .from("vods")
           .upload(`videos/${user_id}/${sanitizedFileName}`, newVodFile, {
             cacheControl: "3600",
             upsert: false,
           });
 
-        if (uploadError) {
-          console.error("Error uploading file:", uploadError);
+        if (uploadPayload.error) {
+          console.error("Error uploading file:", uploadPayload.error);
           return;
         }
 
         // Get the public URL for the uploaded video
         const filePath = `videos/${user_id}/${sanitizedFileName}`;
         console.log("filePath for getPublicUrl:", filePath);
-        const { publicURL, error: publicURLError } = supabase.storage
-          .from("vods")
+        const filePayload = supabase.storage
+          .from('vods')
           .getPublicUrl(filePath);
 
-        if (publicURLError) {
-          console.error("Error getting public URL:", publicURLError);
+        if (!filePayload.data) {
+          console.error("Error getting public URL");
           return;
         }
-        console.log(publicURL);
         // Prepare the new VOD metadata for the database
         const newVod = {
           id: user_id,
           title: newVodTitle,
-          video_url: publicURL, // Use the public URL from Supabase Storage
+          video_url: filePayload.data.publicUrl,
         };
 
-        console.log(newVod.video_url);
 
         // Insert the video metadata into the backend database
         await axios.post(`${backendURL}/add-vod`, newVod);
 
         // Update the local state with the new VOD
         setVods([...vods, newVod]);
-        setCurrentVideoUrl(publicURL);
+        setCurrentVideoUrl(filePayload.data.publicUrl);
         setIsModalOpen(false);
         setNewVodTitle("");
         setNewVodFile(null);
