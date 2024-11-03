@@ -5,9 +5,14 @@ import cors from "cors";
 import "dotenv/config";
 import { OAuth2Client } from "google-auth-library";
 import pkg from "pg";
-import path from "path";
-import { fileURLToPath } from "url";
 import FormData from "form-data";
+import { Configuration, OpenAIApi } from "openai";
+
+const openai = new OpenAIApi(
+  new Configuration({
+    apiKey: process.env.OPENAI_API_KEY,
+  })
+);
 
 const { Pool } = pkg;
 const pool = new Pool({
@@ -70,12 +75,6 @@ app.use(
   })
 );
 
-// Directory names for parsing the audio URL
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Endpoints
-
 // Get Vods
 app.get("/vods/:id", async (req, res) => {
   const { id } = req.params;
@@ -89,31 +88,24 @@ app.get("/vods/:id", async (req, res) => {
   }
 });
 
-// Transcription endpoint
 app.post("/transcribe", async (req, res) => {
-  const { audioUrl } = req.body;
+  const { audioUrl, vodId } = req.body;
 
-  if (!audioUrl) {
-    return res
-      .status(400)
-      .json({ error: "No audioUrl provided in the request body." });
+  if (!audioUrl || !vodId) {
+    return res.status(400).json({ error: "audioUrl and vodId are required." });
   }
 
   try {
-    new URL(audioUrl);
+    // Step 1: Request transcription from OpenAI Whisper API
     const response = await axios.get(audioUrl, { responseType: "stream" });
-    const urlPath = new URL(audioUrl).pathname;
-    const filename = path.basename(urlPath) || "audio.mp3";
-
     const formData = new FormData();
     formData.append("file", response.data, {
-      filename: filename,
-      contentType: response.headers["content-type"] || "audio/mpeg",
+      filename: "audio.mp3",
+      contentType: "audio/mpeg",
     });
     formData.append("model", "whisper-1");
     formData.append("response_format", "verbose_json");
 
-    console.log("Requesting transcription");
     const transcriptionResponse = await axios.post(
       "https://api.openai.com/v1/audio/transcriptions",
       formData,
@@ -127,16 +119,75 @@ app.post("/transcribe", async (req, res) => {
       }
     );
 
-    console.log("Transcription successful");
+    const segments = transcriptionResponse.data.segments;
+    const notes = [];
 
-    return res.status(200).json({
-      message: transcriptionResponse.data.text,
-      segments: transcriptionResponse.data.segments,
-    });
+    // Step 2: Process each segment with OpenAI API to generate notes
+    for (const segment of segments) {
+      const start = Math.floor(segment.start); // Timestamp in seconds
+      const text = segment.text;
+
+      const prompt = `
+        Text: "${text}"
+        
+        Generate structured notes with main points and sub-bullets. Each main point should have a timestamp.
+        Format:
+        - Main point 1
+          - Sub-point 1.1
+          - Sub-point 1.2
+        - Main point 2
+      `;
+
+      const gptResponse = await openai.createCompletion({
+        model: "gpt-4",
+        prompt: prompt,
+        max_tokens: 150,
+      });
+
+      const generatedNotes = gptResponse.data.choices[0].text
+        .trim()
+        .split("\n");
+
+      // Step 3: Convert generated notes into database entries
+      let bulletOrder = 1;
+      let parentNoteId = null;
+
+      for (const line of generatedNotes) {
+        if (line.startsWith("-")) {
+          const noteText = line.replace(/^- /, "").trim();
+
+          // Insert main point into database
+          const note = await pool.query(
+            `INSERT INTO public.notes (vod_id, text, timestamp, bullet_order)
+            VALUES ($1, $2, $3, $4) RETURNING note_id`,
+            [vodId, noteText, start, bulletOrder]
+          );
+
+          parentNoteId = note.rows[0].note_id; // Use the main point as the parent for sub-points
+          bulletOrder++;
+        } else if (line.startsWith("  -")) {
+          const subNoteText = line.replace(/^ {2}- /, "").trim();
+
+          // Insert sub-bullet with parent_note_id
+          await pool.query(
+            `INSERT INTO public.notes (vod_id, text, timestamp, parent_note_id, bullet_order)
+            VALUES ($1, $2, $3, $4, $5)`,
+            [vodId, subNoteText, start, parentNoteId, bulletOrder]
+          );
+
+          bulletOrder++;
+        }
+      }
+    }
+
+    res
+      .status(200)
+      .json({ message: "Notes generated and saved successfully." });
   } catch (error) {
-    return res
-      .status(500)
-      .json({ error: "An error occurred during transcription." });
+    console.error("Error during transcription or note generation:", error);
+    res.status(500).json({
+      error: "An error occurred during transcription and note processing.",
+    });
   }
 });
 
