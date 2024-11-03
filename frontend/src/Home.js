@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { FaPlus, FaTrash, FaSignOutAlt } from "react-icons/fa";
 import axios from "axios";
 import boltLogo from "./assets/lightningBolt.png";
+import _ from 'lodash';
 import { supabase } from "./supabaseClient";
 import { useNavigate } from "react-router-dom";
 
@@ -10,6 +11,7 @@ const backendURL = process.env.REACT_APP_BACKEND_URL;
 function Home() {
   const [vods, setVods] = useState([]);
   const [notes, setNotes] = useState([]);
+  const intervalIdRef = useRef(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newVodTitle, setNewVodTitle] = useState("");
   const [newVodFile, setNewVodFile] = useState(null);
@@ -133,15 +135,28 @@ function Home() {
   const fetchNotes = async () => {
     if (currentVodId) {
       try {
-        const response = await axios.get(`${backendURL}/notes/${currentVodId}`);
-        setNotes(response.data);
+        const response = await axios.get(
+          `${backendURL}/notes/${currentVodId}`
+        );
+        const fetchedNotes = response.data;
+
+        if (notes.length > 0 && _.isEqual(fetchedNotes, notes)) {
+          clearInterval(intervalIdRef.current);
+        }
+        else {
+          setNotes(fetchedNotes);
+        }
       } catch (err) {
         console.error("Error fetching notes:", err);
       }
     }
   };
+
   useEffect(() => {
+
     fetchNotes();
+    intervalIdRef.current = setInterval(fetchNotes, 5000); 
+    return () => clearInterval(intervalIdRef.current); 
   }, [currentVodId]);
 
   const toggleModal = () => setIsModalOpen(!isModalOpen);
