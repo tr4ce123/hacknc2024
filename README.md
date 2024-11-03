@@ -1,3 +1,7 @@
+## What is Bolt?
+
+Upload videos to generate detailed notes instantly, with clickable timestamps for quick access to the most important moments in meetings or lectures.
+
 ## Inspiration
 
 Learning material in college can be challenging, and sifting through Panopto VODs to find the information you need can be tedious and stressful. This pain point led us to create Bolt, a multimedia tool that skips all the needless video scrubbing.
