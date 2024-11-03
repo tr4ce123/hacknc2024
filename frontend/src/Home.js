@@ -1,6 +1,5 @@
 import React, { useState, useRef } from "react";
 import { FaPlus } from "react-icons/fa";
-import { supabase } from "./supabaseClient";
 import axios from "axios";
 import boltLogo from "./assets/lightningBolt.png";
 import { supabase } from "./supabaseClient";
