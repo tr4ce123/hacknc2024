@@ -8,7 +8,8 @@ dotenv.config();
 import { OAuth2Client } from "google-auth-library";
 import pkg from "pg";
 import FormData from "form-data";
-// import { Configuration, OpenAIApi } from "openai";
+import OpenAI from "openai";
+
 
 const openai = new OpenAI(process.env.OPENAI_API_KEY);
 
@@ -73,6 +74,20 @@ app.use(
   })
 );
 
+app.get("/notes/:vod_id", async (req, res) => {
+  const { vod_id } = req.params;
+
+  try {
+    const result = await pool.query("SELECT * FROM notes WHERE vod_id = $1", [
+      vod_id,
+    ]);
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error("Error fetching notes:", error);
+    res.status(500).json({ error: "Failed to fetch notes" });
+  }
+});
+
 // Get Vods
 app.get("/vods/:id", async (req, res) => {
   const { id } = req.params;
@@ -85,6 +100,22 @@ app.get("/vods/:id", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch VODs" });
   }
 });
+
+
+// Remove a vod
+app.delete("/vods/:vod_id", async (req, res) => {
+  const { vod_id } = req.params;
+
+  try {
+    const result = await pool.query("DELETE FROM vods WHERE vod_id = $1", [
+      vod_id,
+    ]);
+    res.status(200).json({ message: "VOD deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting VOD:", error);
+    res.status(500).json({ error: "Failed to delete VOD" });
+  }
+})
 
 app.post("/transcribe", async (req, res) => {
   const { audioUrl, vodId } = req.body;
@@ -142,14 +173,14 @@ app.post("/transcribe", async (req, res) => {
         - Main point 2
       `;
 
-      const gptResponse = await openai.createCompletion({
+      const gptResponse = await openai.chat.completions.create({
         model: "gpt-4",
-        prompt: prompt,
+        messages: [{ role: "user", content: prompt }],
         max_tokens: 150,
       });
       console.log(gptResponse.choices[0].message.content)
 
-      const generatedNotes = gptResponse.data.choices[0].text
+      const generatedNotes = gptResponse.choices[0].message.content
         .trim()
         .split("\n");
 
@@ -293,35 +324,6 @@ app.post("/add-note", async (req, res) => {
     res.status(500).json({ error: "Failed to add note" });
   }
 });
-
-app.get("/notes/:vod_id", async (req, res) => {
-  const { vod_id } = req.params;
-
-  try {
-    const result = await pool.query("SELECT * FROM notes WHERE vod_id = $1", [
-      vod_id,
-    ]);
-    res.status(200).json(result.rows);
-  } catch (error) {
-    console.error("Error fetching notes:", error);
-    res.status(500).json({ error: "Failed to fetch notes" });
-  }
-});
-
-// Function that verifies user based on Google OAuth token
-async function verify(userToken) {
-  try {
-    const ticket = await oauth_client.verifyIdToken({
-      idToken: userToken,
-      audience: process.env.OAUTH_CLIENT_ID,
-    });
-    const payload = ticket.getPayload();
-    return payload;
-  } catch (err) {
-    console.error("Error verifying ID token:", err);
-    return null;
-  }
-}
 
 
 app.listen(PORT, () => {
