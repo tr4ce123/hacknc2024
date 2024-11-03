@@ -233,15 +233,6 @@ function Home() {
         setIsModalOpen(false);
         setNewVodTitle("");
         setNewVodFile(null);
-        if (newVodFromBackend) {
-          // Use the obtained vodId in the transcription request
-          await axios.post(`${backendURL}/transcribe`, {
-            audioUrl: "https://assembly.ai/sports_injuries.mp3",
-            vodId: newVodFromBackend.vod_id, 
-          });
-        } else {
-          console.error("Added VOD not found or missing 'id'");
-        }
 
       } catch (err) {
         console.error("Unable to add VOD", err);
