@@ -74,7 +74,7 @@ function Login() {
           Please enter your Login and your Password
         </p>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="flex items-center space-x-2 bg-yellow-50 rounded-md border border-yellow-300">
+          <div className="flex items-center space-x-2 bg-yellow-50 rounded-full border border-yellow-300">
             <FaUser className="ml-3 text-yellow-900" />
             <input
               type="email"
@@ -85,7 +85,7 @@ function Login() {
               required
             />
           </div>
-          <div className="flex items-center space-x-2 bg-yellow-50 rounded-md border border-yellow-300">
+          <div className="flex items-center space-x-2 bg-yellow-50 rounded-full border border-yellow-300">
             <FaLock className="ml-3 text-yellow-900" />
             <input
               type="password"
@@ -103,7 +103,7 @@ function Login() {
           </div>
           <button
             type="submit"
-            className="w-full py-2 font-semibold text-yellow-900 bg-yellow-200 rounded-md hover:bg-yellow-300"
+            className="w-full py-2 font-semibold text-yellow-900 bg-yellow-200 rounded-full hover:bg-yellow-300"
           >
             Login
           </button>
@@ -113,8 +113,8 @@ function Login() {
           <button
             type="button"
             onClick={handleGoogleLogin}
-            className="flex items-center justify-center w-full py-2 mt-4 space-x-2 text-white bg-red-600 rounded-md hover:bg-red-700"
-          >
+            className="flex items-center justify-center w-full py-2 mt-4 space-x-2 text-white bg-black rounded-full hover:bg-gray-800"
+            >
             <img
               src="https://img.icons8.com/color/16/000000/google-logo.png"
               alt="Google icon"
