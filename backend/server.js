@@ -6,13 +6,13 @@ import "dotenv/config";
 import { OAuth2Client } from "google-auth-library";
 import pkg from "pg";
 import FormData from "form-data";
-import { Configuration, OpenAIApi } from "openai";
+// import { Configuration, OpenAIApi } from "openai";
 
-const openai = new OpenAIApi(
-  new Configuration({
-    apiKey: process.env.OPENAI_API_KEY,
-  })
-);
+// const openai = new OpenAIApi(
+//   new Configuration({
+//     apiKey: process.env.OPENAI_API_KEY,
+//   })
+// );
 
 const { Pool } = pkg;
 const pool = new Pool({
@@ -284,6 +284,20 @@ app.post("/add-note", async (req, res) => {
       .json({ message: "Note added successfully", note: result.rows[0] });
   } catch (error) {
     res.status(500).json({ error: "Failed to add note" });
+  }
+});
+
+app.get("/notes/:vod_id", async (req, res) => {
+  const { vod_id } = req.params;
+
+  try {
+    const result = await pool.query("SELECT * FROM notes WHERE vod_id = $1", [
+      vod_id,
+    ]);
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error("Error fetching notes:", error);
+    res.status(500).json({ error: "Failed to fetch notes" });
   }
 });
 
