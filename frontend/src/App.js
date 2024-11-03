@@ -1,10 +1,12 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 
 import Login from "./Login";
 import Signup from "./Signup";
 import Home from "./Home";
 import PrivateRoute from "./PrivateRoute";
+import { Navigate } from "react-router-dom";
+import AuthCallback from "./AuthCallback";
 
 function App() {
   return (
@@ -20,6 +22,8 @@ function App() {
             </PrivateRoute>
           }
         />
+          <Route path="/auth/callback" element={<AuthCallback />} /> 
+        <Route path="/" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
   );

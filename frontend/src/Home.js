@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { FaPlus } from "react-icons/fa";
-import { supabase } from "./supabaseClient";
 import axios from "axios";
 import boltLogo from "./assets/lightningBolt.png";
+import { supabase } from "./supabaseClient";
+import { useNavigate } from "react-router-dom";
 
 const backendURL = process.env.REACT_APP_BACKEND_URL;
 
@@ -11,10 +12,13 @@ function Home() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newVodTitle, setNewVodTitle] = useState("");
   const [newVodFile, setNewVodFile] = useState(null);
-  const [currentVideoUrl, setCurrentVideoUrl] = useState(null);
+  const [currentVideoUrl, setCurrentVideoUrl] = useState(null); // Initialize to null
+  const [isSignOutModalOpen, setIsSignOutModalOpen] = useState(false);
+  const toggleSignOutModal = () => setIsSignOutModalOpen(!isSignOutModalOpen);
+  const navigate = useNavigate();
+
   const videoRef = useRef(null);
 
-  // Fetch VODs after the component mounts
   useEffect(() => {
     const fetchVods = async () => {
       const user = await supabase.auth
@@ -35,7 +39,21 @@ function Home() {
     };
 
     fetchVods();
-  }, []);
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        console.log(event, session);
+        if (event === "SIGNED_OUT" && session) {
+          sessionStorage.setItem("auth", "false");
+          navigate("/login");
+        }
+      }
+    );
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, [navigate]);
 
   const toggleModal = () => setIsModalOpen(!isModalOpen);
 
@@ -120,6 +138,20 @@ function Home() {
     }
   };
 
+  const handleSignOut = async (e) => {
+    e.preventDefault();
+
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      console.error("Error logging out:", error.message);
+    } else {
+      sessionStorage.setItem("auth", "false");
+      navigate("/login");
+      console.log("Signed out successfully");
+    }
+  };
+
   return (
     <div className="flex h-screen bg-yellow-50">
       {/* Left Sidebar (VODs) */}
@@ -152,19 +184,42 @@ function Home() {
       <div className="w-2/4 flex flex-col items-center">
         <img src={boltLogo} alt="Bolt Logo" className="w-24 h-24 mb-4" />
         <div className="relative w-3/4 h-3/4 rounded-lg shadow-lg overflow-hidden border border-gray-300 bg-black custom-video-border">
-          <video
-            key={currentVideoUrl}
-            ref={videoRef}
-            src={currentVideoUrl}
-            controls
-            className="w-full h-full rounded-lg"
-          />
+          {currentVideoUrl ? (
+            <video
+              key={currentVideoUrl}
+              ref={videoRef}
+              src={currentVideoUrl}
+              controls
+              className="w-full h-full rounded-lg"
+            />
+          ) : (
+            <p className="text-white text-center mt-4">
+              Select a video to play
+            </p>
+          )}
         </div>
       </div>
 
       {/* Right Sidebar */}
       <div className="w-1/4 p-4 bg-yellow-100 border-l border-yellow-300 notes">
-        <h2 className="text-xl font-semibold mb-4 text-yellow-900">Notes</h2>
+        {/* Header with Title and Avatar */}
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold text-yellow-900">Notes</h2>
+          <div
+            className="avatar cursor-pointer"
+            onClick={toggleSignOutModal}
+            title="Sign Out"
+          >
+            <div className="ring-primary ring-offset-base-100 w-12 rounded-full ring ring-offset-2">
+              <img
+                src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp"
+                alt="User Avatar"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Notes Content */}
         <div className="space-y-2 text-yellow-900">
           <ul className="list-none pl-4">
             <li className="custom-bullet">
@@ -239,6 +294,36 @@ function Home() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal for signing out */}
+      {isSignOutModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="w-1/3 p-6 bg-white rounded-lg shadow-lg">
+            <h3 className="text-xl font-semibold mb-4 text-yellow-900">
+              Sign Out
+            </h3>
+            <p className="mb-6 text-yellow-800">
+              Are you sure you want to sign out?
+            </p>
+            <div className="flex justify-end space-x-2">
+              <button
+                type="button"
+                onClick={toggleSignOutModal}
+                className="px-4 py-2 bg-gray-200 text-yellow-900 rounded hover:bg-gray-300"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+              >
+                Sign Out
+              </button>
+            </div>
           </div>
         </div>
       )}
