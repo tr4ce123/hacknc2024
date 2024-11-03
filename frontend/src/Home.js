@@ -21,6 +21,78 @@ function Home() {
 
   const videoRef = useRef(null);
 
+  const [leftWidth, setLeftWidth] = useState(15);
+  const [centerWidth, setCenterWidth] = useState(55);
+  const [rightWidth, setRightWidth] = useState(30);
+
+  // Refs to track resizing
+  const isResizingLeft = useRef(false);
+  const isResizingRight = useRef(false);
+
+  // Mouse event handlers for resizing
+  const handleMouseDown = (e, direction) => {
+    e.preventDefault();
+    if (direction === "left") {
+      isResizingLeft.current = true;
+    } else if (direction === "right") {
+      isResizingRight.current = true;
+    }
+  };
+
+  const handleMouseMove = (e) => {
+    if (isResizingLeft.current) {
+      const deltaX = e.movementX;
+      const totalWidth = window.innerWidth;
+      let newLeftWidth =
+        (((leftWidth * totalWidth) / 100 + deltaX) / totalWidth) * 100;
+      let newCenterWidth =
+        (((centerWidth * totalWidth) / 100 - deltaX) / totalWidth) * 100;
+
+      if (newLeftWidth < 10) {
+        newLeftWidth = 10;
+        newCenterWidth = leftWidth + centerWidth - 10;
+      } else if (newCenterWidth < 10) {
+        newCenterWidth = 10;
+        newLeftWidth = leftWidth + centerWidth - 10;
+      }
+
+      setLeftWidth(newLeftWidth);
+      setCenterWidth(newCenterWidth);
+    } else if (isResizingRight.current) {
+      const deltaX = -e.movementX;
+      const totalWidth = window.innerWidth;
+      let newRightWidth =
+        (((rightWidth * totalWidth) / 100 + deltaX) / totalWidth) * 100;
+      let newCenterWidth =
+        (((centerWidth * totalWidth) / 100 - deltaX) / totalWidth) * 100;
+
+      if (newRightWidth < 10) {
+        newRightWidth = 10;
+        newCenterWidth = centerWidth + rightWidth - 10;
+      } else if (newCenterWidth < 10) {
+        newCenterWidth = 10;
+        newRightWidth = centerWidth + rightWidth - 10;
+      }
+
+      setRightWidth(newRightWidth);
+      setCenterWidth(newCenterWidth);
+    }
+  };
+
+  const handleMouseUp = () => {
+    isResizingLeft.current = false;
+    isResizingRight.current = false;
+  };
+
+  useEffect(() => {
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  });
+
   useEffect(() => {
     const fetchVods = async () => {
       const user = await supabase.auth
@@ -240,7 +312,11 @@ function Home() {
   return (
     <div className="flex h-screen bg-yellow-50">
       {/* Left Sidebar (VODs) */}
-      <div className="w-1/6 p-4 bg-yellow-100 border-r border-yellow-300">
+      <div
+        style={{ width: `${leftWidth}%` }}
+        className="p-4 bg-yellow-100 border-r border-yellow-300 overflow-auto"
+      >
+        {/* Left Sidebar Content */}
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold text-yellow-900">VODs</h2>
           <button
@@ -251,37 +327,34 @@ function Home() {
           </button>
         </div>
         <ul className="space-y-2">
-          {vods.map(
-            (vod) => (
-              console.log(vod),
-              (
-                <li
-                  key={vod.id}
-                  className={`flex justify-between items-center p-2 rounded shadow cursor-pointer hover:bg-yellow-200 ${
-                    vod.video_url === currentVideoUrl
-                      ? "bg-yellow-300"
-                      : "bg-white"
-                  }`}
-                  onClick={() => changeVideo(vod.video_url)}
-                >
-                  <span>{vod.title}</span>
-                  <button
-                    className="flex items-center justify-center w-6 h-6 bg-red-500 text-white rounded hover:bg-red-600"
-                    onClick={(e) => {
-                      e.stopPropagation(); // Prevent triggering the li onClick
-                      handleRemoveVod(vod);
-                    }}
-                    title="Remove VOD"
-                  >
-                    <FaTrash size={10} />
-                  </button>
-                </li>
-              )
-            )
-          )}
+          {vods.map((vod) => (
+            <li
+              key={vod.id}
+              className={`flex justify-between items-center p-2 rounded shadow cursor-pointer hover:bg-yellow-200 ${
+                vod.video_url === currentVideoUrl ? "bg-yellow-300" : "bg-white"
+              }`}
+              onClick={() => changeVideo(vod.video_url)}
+            >
+              <span>{vod.title}</span>
+              <button
+                className="flex items-center justify-center w-6 h-6 bg-orange-900 text-white rounded hover:bg-red-600"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRemoveVod(vod);
+                }}
+                title="Remove VOD"
+              >
+                <FaTrash size={10} />
+              </button>
+            </li>
+          ))}
         </ul>
       </div>
-
+      {/* Resizer Bar for Left */}
+      <div
+        onMouseDown={(e) => handleMouseDown(e, "left")}
+        className="w-1 bg-gray-400 cursor-col-resize"
+      />
       {/* Sign Out Button */}
       <button
         onClick={toggleSignOutModal}
@@ -292,7 +365,10 @@ function Home() {
       </button>
 
       {/* Video Player (Center) */}
-      <div className="w-3/6 flex flex-col items-center">
+      <div
+        style={{ width: `${centerWidth}%` }}
+        className="flex flex-col items-center overflow-auto"
+      >
         <img src={boltLogo} alt="Bolt Logo" className="w-24 h-24 mb-4" />
         <div className="relative w-5/6 h-3/4 rounded-lg shadow-lg overflow-hidden border border-gray-300 bg-black custom-video-border">
           {currentVideoUrl ? (
@@ -310,16 +386,23 @@ function Home() {
           )}
         </div>
       </div>
-
+      {/* Resizer Bar for Right */}
+      <div
+        onMouseDown={(e) => handleMouseDown(e, "right")}
+        className="w-1 bg-gray-400 cursor-col-resize"
+      />
       {/* Right Sidebar */}
-      <div className="w-2/6 p-4 bg-yellow-100 border-l border-yellow-300 notes">
+      <div
+        style={{ width: `${rightWidth}%` }}
+        className="p-4 bg-yellow-100 border-l border-yellow-300 overflow-auto"
+      >
+        {/* Right Sidebar Content */}
         {/* Header with Title and Avatar */}
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold text-yellow-900">Notes</h2>
         </div>
-
         {/* Notes Content */}
-        <div className="space-y-2 text-yellow-900">
+        <div className="flex-grow overflow-y-auto space-y-2 text-yellow-900">
           {notes.length > 0 ? (
             <ul className="list-none pl-4">
               {notes.map((note) => renderNote(note))}
@@ -348,7 +431,6 @@ function Home() {
                   onChange={(e) => setNewVodTitle(e.target.value)}
                 />
               </div>
-
               <div className="mb-4">
                 <label className="block text-yellow-800 mb-1">
                   Upload MP4 File
@@ -380,7 +462,7 @@ function Home() {
         </div>
       )}
 
-      {/* Modal for signing out */}
+      {/* Modal for Signing Out */}
       {isSignOutModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
           <div className="w-1/3 p-6 bg-white rounded-lg shadow-lg">
