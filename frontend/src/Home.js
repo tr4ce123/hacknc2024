@@ -218,9 +218,18 @@ function Home() {
         // Insert the video metadata into the backend database
         await axios.post(`${backendURL}/add-vod`, newVod);
 
+        const response = await axios.get(`${backendURL}/vods/${user_id}`);
+        const updatedVods = response.data;  
+
+        setVods(updatedVods);
+
+        const newVodFromBackend = updatedVods.find(
+          (vod) => vod.video_url === newVod.video_url
+        );
+        setCurrentVideoUrl(newVodFromBackend.video_url);
+        setCurrentVodId(newVodFromBackend.vod_id);
+  
         // Update the local state with the new VOD
-        setVods([...vods, newVod]);
-        setCurrentVideoUrl(filePayload.data.publicUrl);
         setIsModalOpen(false);
         setNewVodTitle("");
         setNewVodFile(null);
