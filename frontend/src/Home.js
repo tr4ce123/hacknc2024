@@ -289,10 +289,20 @@ function Home() {
 
       setVods(updatedVods);
 
-
       if (error) {
         console.error("Error deleting VOD from storage:", error);
       }
+
+      if (matchingVod.vod_id === currentVodId) {
+        if (updatedVods.length > 0) {
+          setCurrentVideoUrl(updatedVods[0].video_url);
+          setCurrentVodId(updatedVods[0].vod_id);
+        } else {
+          setCurrentVideoUrl(null);
+          setCurrentVodId(null);
+        }
+      }
+  
     } catch (error) {
       console.error("Error deleting VOD:", error);
     }
