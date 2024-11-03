@@ -84,7 +84,9 @@ function Home() {
     const fetchNotes = async () => {
       if (currentVodId) {
         try {
-          const response = await axios.get(`${backendURL}/notes/${currentVodId}`);
+          const response = await axios.get(
+            `${backendURL}/notes/${currentVodId}`
+          );
           setNotes(response.data);
         } catch (err) {
           console.error("Error fetching notes:", err);
@@ -146,7 +148,7 @@ function Home() {
         const filePath = `videos/${user_id}/${sanitizedFileName}`;
         console.log("filePath for getPublicUrl:", filePath);
         const filePayload = supabase.storage
-          .from('vods')
+          .from("vods")
           .getPublicUrl(filePath);
 
         if (!filePayload.data) {
@@ -159,7 +161,6 @@ function Home() {
           title: newVodTitle,
           video_url: filePayload.data.publicUrl,
         };
-
 
         // Insert the video metadata into the backend database
         await axios.post(`${backendURL}/add-vod`, newVod);
@@ -189,10 +190,12 @@ function Home() {
       console.log("Signed out successfully");
     }
   };
- 
+
   const handleRemoveVod = async (inputVod) => {
     try {
-      const matchingVod = vods.find((vod) => vod.video_url === inputVod.video_url);
+      const matchingVod = vods.find(
+        (vod) => vod.video_url === inputVod.video_url
+      );
 
       // Check if a matching VOD was found
       if (!matchingVod) {
@@ -200,20 +203,18 @@ function Home() {
         return;
       }
 
-      const url = matchingVod.video_url.split('/vods/')[1];
+      const url = matchingVod.video_url.split("/vods/")[1];
 
       await axios.delete(`${backendURL}/vods/${matchingVod.vod_id}`);
-  
+
       const { data, error } = await supabase.storage.from("vods").remove([url]);
       if (error) {
         console.error("Error deleting VOD from storage:", error);
       }
-  
     } catch (error) {
       console.error("Error deleting VOD:", error);
     }
-
-  }
+  };
 
   const renderNote = (note) => {
     const isSubNote = note.parent_note_id !== null;
@@ -231,7 +232,7 @@ function Home() {
           width: isSubNote ? "calc(100% - 1.5rem)" : "100%",
         }}
       >
-        -{" "} {note.text} 
+        - {note.text}
       </button>
     );
   };
@@ -250,28 +251,34 @@ function Home() {
           </button>
         </div>
         <ul className="space-y-2">
-          {vods.map((vod) => (
-            console.log(vod),
-            <li
-              key={vod.id}
-              className={`flex justify-between items-center p-2 rounded shadow cursor-pointer hover:bg-yellow-200 ${
-                vod.video_url === currentVideoUrl ? "bg-yellow-300" : "bg-white"
-              }`}
-              onClick={() => changeVideo(vod.video_url)}
-            >
-              <span>{vod.title}</span>
-              <button
-                className="flex items-center justify-center w-6 h-6 bg-red-500 text-white rounded hover:bg-red-600"
-                onClick={(e) => {
-                  e.stopPropagation(); // Prevent triggering the li onClick
-                  handleRemoveVod(vod);
-                }}
-                title="Remove VOD"
-              >
-                <FaTrash size={10} />
-              </button>
-            </li>
-          ))}
+          {vods.map(
+            (vod) => (
+              console.log(vod),
+              (
+                <li
+                  key={vod.id}
+                  className={`flex justify-between items-center p-2 rounded shadow cursor-pointer hover:bg-yellow-200 ${
+                    vod.video_url === currentVideoUrl
+                      ? "bg-yellow-300"
+                      : "bg-white"
+                  }`}
+                  onClick={() => changeVideo(vod.video_url)}
+                >
+                  <span>{vod.title}</span>
+                  <button
+                    className="flex items-center justify-center w-6 h-6 bg-red-500 text-white rounded hover:bg-red-600"
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent triggering the li onClick
+                      handleRemoveVod(vod);
+                    }}
+                    title="Remove VOD"
+                  >
+                    <FaTrash size={10} />
+                  </button>
+                </li>
+              )
+            )
+          )}
         </ul>
       </div>
 
@@ -324,7 +331,6 @@ function Home() {
             <p>No notes available for this VOD.</p>
           )}
         </div>
-
       </div>
 
       {/* Modal for Adding New VOD */}
