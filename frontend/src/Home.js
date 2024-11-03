@@ -219,7 +219,7 @@ function Home() {
         await axios.post(`${backendURL}/add-vod`, newVod);
 
         const response = await axios.get(`${backendURL}/vods/${user_id}`);
-        const updatedVods = response.data;  
+        const updatedVods = response.data;
 
         setVods(updatedVods);
 
@@ -228,7 +228,7 @@ function Home() {
         );
         setCurrentVideoUrl(newVodFromBackend.video_url);
         setCurrentVodId(newVodFromBackend.vod_id);
-  
+
         // Update the local state with the new VOD
         setIsModalOpen(false);
         setNewVodTitle("");
@@ -237,12 +237,11 @@ function Home() {
           // Use the obtained vodId in the transcription request
           await axios.post(`${backendURL}/transcribe`, {
             audioUrl: "https://assembly.ai/sports_injuries.mp3",
-            vodId: newVodFromBackend.vod_id, 
+            vodId: newVodFromBackend.vod_id,
           });
         } else {
           console.error("Added VOD not found or missing 'id'");
         }
-
       } catch (err) {
         console.error("Unable to add VOD", err);
       }
@@ -251,7 +250,7 @@ function Home() {
 
   const handleSignOut = async (e) => {
     e.preventDefault();
-    
+
     const { error } = await supabase.auth.signOut();
 
     if (error) {
@@ -271,7 +270,6 @@ function Home() {
 
       const user_id = sessionStorage.getItem("user");
 
-
       // Check if a matching VOD was found
       if (!matchingVod) {
         console.error("VOD not found");
@@ -285,7 +283,7 @@ function Home() {
       const { data, error } = await supabase.storage.from("vods").remove([url]);
 
       const response = await axios.get(`${backendURL}/vods/${user_id}`);
-      const updatedVods = response.data;  
+      const updatedVods = response.data;
 
       setVods(updatedVods);
 
@@ -302,7 +300,6 @@ function Home() {
           setCurrentVodId(null);
         }
       }
-  
     } catch (error) {
       console.error("Error deleting VOD:", error);
     }
@@ -400,9 +397,7 @@ function Home() {
               className="w-full h-full rounded-lg"
             />
           ) : (
-            <p className="text-white text-center mt-4">
-              Select a video to play
-            </p>
+            <p className="text-white text-center mt-4"></p>
           )}
         </div>
       </div>
