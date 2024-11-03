@@ -9,8 +9,6 @@ function Login() {
   const navigate = useNavigate();
 
   useEffect(() => {
-
-
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (event, session) => {
         console.log(event, session);
@@ -57,7 +55,7 @@ function Login() {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: "http://localhost:3000/home",
+        redirectTo: "http://localhost:3000/auth/callback",
       },
     });
 

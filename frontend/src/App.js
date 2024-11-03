@@ -6,6 +6,7 @@ import Signup from "./Signup";
 import Home from "./Home";
 import PrivateRoute from "./PrivateRoute";
 import { Navigate } from "react-router-dom";
+import AuthCallback from "./AuthCallback";
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
             </PrivateRoute>
           }
         />
+          <Route path="/auth/callback" element={<AuthCallback />} /> 
         <Route path="/" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
