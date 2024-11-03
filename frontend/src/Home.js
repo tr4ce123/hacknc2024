@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { FaPlus, FaTrash, FaSignOutAlt } from "react-icons/fa";
+import { FaPlus, FaTrash, FaSignOutAlt, FaChevronRight, FaChevronDown } from "react-icons/fa";
 import axios from "axios";
 import boltLogo from "./assets/lightningBolt.png";
 import { supabase } from "./supabaseClient";
@@ -16,6 +16,7 @@ function Home() {
   const [currentVideoUrl, setCurrentVideoUrl] = useState(null); // Initialize to null
   const [isSignOutModalOpen, setIsSignOutModalOpen] = useState(false);
   const [currentVodId, setCurrentVodId] = useState(null);
+  const [expandedNotes, setExpandedNotes] = useState({}); // State to track expanded notes
   const toggleSignOutModal = () => setIsSignOutModalOpen(!isSignOutModalOpen);
   const navigate = useNavigate();
 
@@ -283,32 +284,59 @@ function Home() {
     }
   };
 
+  const toggleNoteExpansion = (noteId) => {
+    setExpandedNotes((prev) => ({
+      ...prev,
+      [noteId]: !prev[noteId],
+    }));
+  };
+
   const renderNote = (note, level = 0) => {
     const hasChildren = notes.some((n) => n.parent_note_id === note.note_id);
-  
+    const isExpanded = expandedNotes[note.note_id];
+
     return (
-      <div key={note.note_id} style={{ marginLeft: `${level * 1.5}rem` }}>
+      <div key={note.note_id} className={`mb-2`}>
         <button
-          onClick={() => seekToTimestamp(note.timestamp)}
-          className={`p-2 w-full text-left rounded-full hover:bg-amber-200 cursor-pointer`}
+          onClick={() => {
+            seekToTimestamp(note.timestamp);
+            if (hasChildren) toggleNoteExpansion(note.note_id);
+          }}
+          className={`flex items-center p-3 w-full text-left rounded-lg hover:bg-amber-100 cursor-pointer transition-colors duration-200 ${
+            level > 0 ? `ml-${level * 4}` : ""
+          }`}
           style={{
-            fontSize: `${1 - level * 0.1}rem`,
-            fontWeight: level === 0 ? "bold" : "normal",            
+            marginLeft: `${level * 1.5}rem`,
           }}
         >
-          {level === 0 ? note.text : `- ${note.text}`}
+          {hasChildren && (
+            <span className="mr-2">
+              {isExpanded ? <FaChevronDown /> : <FaChevronRight />}
+            </span>
+          )}
+          <span
+            className={`${
+              level === 0 ? "font-semibold text-lg" : "font-normal text-base text-gray-700"
+            }`}
+          >
+            {level === 0 ? note.text : `- ${note.text}`}
+          </span>
         </button>
-        {hasChildren &&
-          notes
-            .filter((n) => n.parent_note_id === note.note_id)
-            .sort((a, b) => a.bullet_order - b.bullet_order)
-            .map((childNote) => renderNote(childNote, level + 1))}
+        {hasChildren && isExpanded && (
+          <div>
+            {notes
+              .filter((n) => n.parent_note_id === note.note_id)
+              .sort((a, b) => a.bullet_order - b.bullet_order)
+              .map((childNote) => renderNote(childNote, level + 1))}
+          </div>
+        )}
       </div>
     );
   };
-  
+
   return (
-    <div className="flex h-screen bg-yellow-50">
+    <div className="flex h-screen bg-yellow-50 relative">
+      {/* VODs Sidebar */}
       <div
         style={{ width: `${leftWidth}%` }}
         className="p-4 bg-yellow-100 border-r border-yellow-300 overflow-auto"
@@ -346,10 +374,14 @@ function Home() {
           ))}
         </ul>
       </div>
+
+      {/* Resizer Left */}
       <div
         onMouseDown={(e) => handleMouseDown(e, "left")}
         className="w-1 bg-gray-400 cursor-col-resize"
       />
+
+      {/* Sign Out Button */}
       <button
         onClick={toggleSignOutModal}
         className="absolute bottom-4 left-4 text-yellow-900 hover:text-yellow-600"
@@ -358,6 +390,7 @@ function Home() {
         <FaSignOutAlt size={24} />
       </button>
 
+      {/* Video Center */}
       <div
         style={{ width: `${centerWidth}%` }}
         className="flex flex-col items-center overflow-auto"
@@ -373,37 +406,42 @@ function Home() {
               className="w-full h-full rounded-lg"
             />
           ) : (
-            <p className="text-white text-center mt-4"></p>
+            <p className="text-white text-center mt-4">No video selected.</p>
           )}
         </div>
       </div>
+
+      {/* Resizer Right */}
       <div
         onMouseDown={(e) => handleMouseDown(e, "right")}
         className="w-1 bg-gray-400 cursor-col-resize"
       />
+
+      {/* Notes Sidebar */}
       <div
         style={{ width: `${rightWidth}%` }}
-        className="p-4 bg-yellow-100 border-l border-yellow-300 overflow-auto"
+        className="p-6 bg-yellow-100 border-l border-yellow-300 overflow-auto"
       >
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-yellow-900">Notes</h2>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-semibold text-yellow-900">Notes</h2>
         </div>
-        <div className="flex-grow overflow-y-auto space-y-2 text-yellow-900">
+        <div className="flex-grow overflow-y-auto space-y-2 text-yellow-900 p-2 bg-yellow-50 rounded-md shadow-inner scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-amber-400 scrollbar-track-yellow-100">
           {notes.length > 0 ? (
-            <ul className="list-none pl-4">
+            <ul className="list-none">
               {notes
                 .filter((note) => note.parent_note_id === null)
                 .sort((a, b) => a.bullet_order - b.bullet_order)
                 .map((note) => renderNote(note))}
             </ul>
           ) : (
-            <p>No notes available for this VOD.</p>
+            <p className="text-gray-600">No notes available for this VOD.</p>
           )}
         </div>
       </div>
 
+      {/* Add VOD Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="w-1/3 p-6 bg-white rounded-lg shadow-lg">
             <h3 className="text-xl font-semibold mb-4 text-yellow-900">
               Add New VOD
@@ -417,6 +455,7 @@ function Home() {
                   placeholder="Enter title"
                   value={newVodTitle}
                   onChange={(e) => setNewVodTitle(e.target.value)}
+                  required
                 />
               </div>
               <div className="mb-4">
@@ -428,6 +467,7 @@ function Home() {
                   accept="video/mp4"
                   className="w-full px-3 py-2 border border-yellow-300 rounded"
                   onChange={(e) => setNewVodFile(e.target.files[0])}
+                  required
                 />
               </div>
               <div className="flex justify-end space-x-2">
@@ -450,8 +490,9 @@ function Home() {
         </div>
       )}
 
+      {/* Sign Out Confirmation Modal */}
       {isSignOutModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="w-1/3 p-6 bg-white rounded-lg shadow-lg">
             <h3 className="text-xl font-semibold mb-4 text-yellow-900">
               Sign Out
