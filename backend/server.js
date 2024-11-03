@@ -3,7 +3,7 @@ import bcrypt from "bcrypt";
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import path from 'path';
+import path from "path";
 dotenv.config();
 import { OAuth2Client } from "google-auth-library";
 import pkg from "pg";
@@ -109,7 +109,6 @@ app.get("/vods/:id", async (req, res) => {
   }
 });
 
-
 // Remove a vod
 app.delete("/vods/:vod_id", async (req, res) => {
   const { vod_id } = req.params;
@@ -123,7 +122,7 @@ app.delete("/vods/:vod_id", async (req, res) => {
     console.error("Error deleting VOD:", error);
     res.status(500).json({ error: "Failed to delete VOD" });
   }
-})
+});
 
 async function transcribeVideo(videoUrl, vodId) {
   try {
@@ -138,7 +137,7 @@ async function transcribeVideo(videoUrl, vodId) {
       tempVidWriter.on('finish', resolve);
       tempVidWriter.on('error', reject);
     });
-
+    
     const tempAudioPath = path.join(__dirname, `temp_audio_${vodId}.mp3`);
 
     await new Promise((resolve, reject) => {
@@ -177,13 +176,13 @@ async function transcribeVideo(videoUrl, vodId) {
 
     // Process each segment with OpenAI API to generate notes
     for (const segment of segments) {
-      const start = Math.floor(segment.start); 
+      const start = Math.floor(segment.start);
       const text = segment.text;
 
       const prompt = `
         Text: "${text}"
         
-        Generate structured notes with main points and sub-bullets. Each main point should have a timestamp.
+        Generate structured notes in chronological order with main points and sub-bullets.
         Format:
         - Main point 1
           - Sub-point 1.1
@@ -196,7 +195,7 @@ async function transcribeVideo(videoUrl, vodId) {
         messages: [{ role: "user", content: prompt }],
         max_tokens: 150,
       });
-      console.log(gptResponse.choices[0].message.content)
+      console.log(gptResponse.choices[0].message.content);
 
       const generatedNotes = gptResponse.choices[0].message.content
         .trim()
@@ -302,7 +301,7 @@ app.post("/add-vod", async (req, res) => {
   try {
     const { id, title, video_url } = req.body;
 
-    console.log("Received data:", { id, title, video_url }); 
+    console.log("Received data:", { id, title, video_url });
 
     // Check for missing fields
     if (!id || !title || !video_url) {
@@ -315,7 +314,7 @@ app.post("/add-vod", async (req, res) => {
       [id, title, video_url]
     );
 
-    console.log("VOD added to database:", result.rows[0]); 
+    console.log("VOD added to database:", result.rows[0]);
 
     transcribeVideo(video_url, result.rows[0].vod_id);
 
@@ -323,7 +322,7 @@ app.post("/add-vod", async (req, res) => {
       .status(201)
       .json({ message: "VOD added successfully", vod: result.rows[0] });
   } catch (error) {
-    console.error("Error adding VOD:", error); 
+    console.error("Error adding VOD:", error);
     res.status(500).json({ error: "Failed to add VOD" });
   }
 });
@@ -344,7 +343,6 @@ app.post("/add-note", async (req, res) => {
     res.status(500).json({ error: "Failed to add note" });
   }
 });
-
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

@@ -116,6 +116,8 @@ function Home() {
     fetchVods();
   }, []);
 
+
+
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (event, session) => {
@@ -132,20 +134,19 @@ function Home() {
     };
   }, [navigate]);
 
-  useEffect(() => {
-    const fetchNotes = async () => {
-      if (currentVodId) {
-        try {
-          const response = await axios.get(
-            `${backendURL}/notes/${currentVodId}`
-          );
-          setNotes(response.data);
-        } catch (err) {
-          console.error("Error fetching notes:", err);
-        }
+  const fetchNotes = async () => {
+    if (currentVodId) {
+      try {
+        const response = await axios.get(
+          `${backendURL}/notes/${currentVodId}`
+        );
+        setNotes(response.data);
+      } catch (err) {
+        console.error("Error fetching notes:", err);
       }
-    };
-
+    }
+  };
+  useEffect(() => {
     fetchNotes();
   }, [currentVodId]);
 
