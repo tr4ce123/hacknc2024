@@ -9,11 +9,13 @@ const backendURL = process.env.REACT_APP_BACKEND_URL;
 
 function Home() {
   const [vods, setVods] = useState([]);
+  const [notes, setNotes] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newVodTitle, setNewVodTitle] = useState("");
   const [newVodFile, setNewVodFile] = useState(null);
   const [currentVideoUrl, setCurrentVideoUrl] = useState(null); // Initialize to null
   const [isSignOutModalOpen, setIsSignOutModalOpen] = useState(false);
+  const [currentVodId, setCurrentVodId] = useState(null);
   const toggleSignOutModal = () => setIsSignOutModalOpen(!isSignOutModalOpen);
   const navigate = useNavigate();
 
@@ -31,6 +33,7 @@ function Home() {
           setVods(response.data);
           if (response.data.length > 0) {
             setCurrentVideoUrl(response.data[0].video_url); // Set the first VOD as the default video
+            setCurrentVodId(response.data[0].vod_id);
           }
         } catch (err) {
           console.error("Error fetching VODs:", err);
@@ -54,6 +57,21 @@ function Home() {
       authListener.subscription.unsubscribe();
     };
   }, [navigate]);
+
+  useEffect(() => {
+    const fetchNotes = async () => {
+      if (currentVodId) {
+        try {
+          const response = await axios.get(`${backendURL}/notes/${currentVodId}`);
+          setNotes(response.data);
+        } catch (err) {
+          console.error("Error fetching notes:", err);
+        }
+      }
+    };
+
+    fetchNotes();
+  }, [currentVodId]);
 
   const toggleModal = () => setIsModalOpen(!isModalOpen);
 
@@ -150,10 +168,31 @@ function Home() {
     }
   };
 
+  const renderNote = (note) => {
+    const isSubNote = note.parent_note_id !== null;
+
+    return (
+      <button
+        key={note.note_id}
+        onClick={() => seekToTimestamp(note.timestamp)}
+        className={`p-2 w-full text-left rounded-full ${
+          isSubNote ? "pl-6" : "pl-4"
+        } hover:bg-amber-200 cursor-pointer`}
+        style={{
+          marginLeft: isSubNote ? "1.5rem" : "0",
+          fontSize: isSubNote ? "0.9rem" : "1.0rem",
+          width: isSubNote ? "calc(100% - 1.5rem)" : "100%",
+        }}
+      >
+        -{" "} {note.text} 
+      </button>
+    );
+  };
+
   return (
     <div className="flex h-screen bg-yellow-50">
       {/* Left Sidebar (VODs) */}
-      <div className="w-1/4 p-4 bg-yellow-100 border-r border-yellow-300">
+      <div className="w-1/6 p-4 bg-yellow-100 border-r border-yellow-300">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold text-yellow-900">VODs</h2>
           <button
@@ -179,9 +218,9 @@ function Home() {
       </div>
 
       {/* Video Player (Center) */}
-      <div className="w-2/4 flex flex-col items-center">
+      <div className="w-3/6 flex flex-col items-center">
         <img src={boltLogo} alt="Bolt Logo" className="w-24 h-24 mb-4" />
-        <div className="relative w-3/4 h-3/4 rounded-lg shadow-lg overflow-hidden border border-gray-300 bg-black custom-video-border">
+        <div className="relative w-5/6 h-3/4 rounded-lg shadow-lg overflow-hidden border border-gray-300 bg-black custom-video-border">
           {currentVideoUrl ? (
             <video
               key={currentVideoUrl}
@@ -199,7 +238,7 @@ function Home() {
       </div>
 
       {/* Right Sidebar */}
-      <div className="w-1/4 p-4 bg-yellow-100 border-l border-yellow-300 notes">
+      <div className="w-2/6 p-4 bg-yellow-100 border-l border-yellow-300 notes">
         {/* Header with Title and Avatar */}
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold text-yellow-900">Notes</h2>
@@ -219,31 +258,15 @@ function Home() {
 
         {/* Notes Content */}
         <div className="space-y-2 text-yellow-900">
-          <ul className="list-none pl-4">
-            <li className="custom-bullet">
-              Summarizes lectures to <strong>quickly learn material</strong>.
-            </li>
-            <li className="custom-bullet">
-              Summarizes work meetings to{" "}
-              <strong>easily define responsibilities</strong>.
-            </li>
-            <li className="custom-bullet">
-              Timestamps for key points in meeting:
-              <ul className="list-none pl-6">
-                <li className="sub-bullet">
-                  <span
-                    onClick={() => seekToTimestamp(10)}
-                    className="text-blue-600 cursor-pointer hover:underline"
-                  >
-                    Can be clicked to immediately jump user to that point in the
-                    meeting
-                  </span>
-                </li>
-              </ul>
-            </li>
-            <li className="custom-bullet">Full tool for video analysis.</li>
-          </ul>
+          {notes.length > 0 ? (
+            <ul className="list-none pl-4">
+              {notes.map((note) => renderNote(note))}
+            </ul>
+          ) : (
+            <p>No notes available for this VOD.</p>
+          )}
         </div>
+
       </div>
 
       {/* Modal for Adding New VOD */}
