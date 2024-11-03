@@ -40,12 +40,6 @@ function Signup() {
     } else {
       sessionStorage.setItem("auth", "true");
       navigate("/home");
-      const response = await axios.post("http://localhost:8080/add-vod", {
-        id: "1f585e5e-055a-423d-99c0-0847acaecf41",
-        title: "Example VOD",
-        video_url: "https://assembly.ai/sports_injuries.mp3"
-      })
-      console.log(response);
     }
   };
 

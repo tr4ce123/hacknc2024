@@ -76,6 +76,19 @@ const __dirname = path.dirname(__filename);
 
 // Endpoints
 
+// Get Vods
+app.get("/vods/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await pool.query("SELECT * FROM vods WHERE id = $1", [id]);
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error("Error fetching VODs:", error);
+    res.status(500).json({ error: "Failed to fetch VODs" });
+  }
+});
+
 // Transcription endpoint
 app.post("/transcribe", async (req, res) => {
   const { audioUrl } = req.body;
@@ -178,17 +191,30 @@ app.post("/login", async (req, res) => {
 
 // Add VOD
 app.post("/add-vod", async (req, res) => {
+  console.log("Received a request at /add-vod"); // Log when the endpoint is hit
   try {
     const { id, title, video_url } = req.body;
+
+    console.log("Received data:", { id, title, video_url }); // Log received data
+
+    // Check for missing fields
+    if (!id || !title || !video_url) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    // Insert the VOD into the database
     const result = await pool.query(
       "INSERT INTO vods (id, title, video_url) VALUES ($1, $2, $3) RETURNING *",
       [id, title, video_url]
     );
 
+    console.log("VOD added to database:", result.rows[0]); // Log the inserted row
+
     res
       .status(201)
       .json({ message: "VOD added successfully", vod: result.rows[0] });
   } catch (error) {
+    console.error("Error adding VOD:", error); // Log the error
     res.status(500).json({ error: "Failed to add VOD" });
   }
 });
