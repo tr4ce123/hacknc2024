@@ -3,17 +3,15 @@ import bcrypt from "bcrypt";
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import path from 'path';
 dotenv.config();
 import { OAuth2Client } from "google-auth-library";
 import pkg from "pg";
 import FormData from "form-data";
 import OpenAI from "openai";
 
-const configuration = new OpenAI.Configuration({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
-const openai = new OpenAI.OpenAIApi(configuration);
+const openai = new OpenAI(process.env.OPENAI_API_KEY);
 
 const { Pool } = pkg;
 const pool = new Pool({
@@ -113,12 +111,17 @@ app.post("/transcribe", async (req, res) => {
   }
 
   try {
+    new URL(audioUrl)
+
     // Step 1: Request transcription from OpenAI Whisper API
     const response = await axios.get(audioUrl, { responseType: "stream" });
+    const urlPath = new URL(audioUrl).pathname;
+    const filename = path.basename(urlPath) || "audio.mp3";
+
     const formData = new FormData();
     formData.append("file", response.data, {
-      filename: "audio.mp3",
-      contentType: "audio/mpeg",
+      filename: filename,
+      contentType: response.headers["content-type"] || "audio/mpeg",
     });
     formData.append("model", "whisper-1");
     formData.append("response_format", "verbose_json");
@@ -136,12 +139,13 @@ app.post("/transcribe", async (req, res) => {
       }
     );
 
+    console.log(transcriptionResponse.data);
     const segments = transcriptionResponse.data.segments;
     const notes = [];
 
     // Step 2: Process each segment with OpenAI API to generate notes
     for (const segment of segments) {
-      const start = Math.floor(segment.start); // Timestamp in seconds
+      const start = Math.floor(segment.start); 
       const text = segment.text;
 
       const prompt = `
@@ -160,6 +164,7 @@ app.post("/transcribe", async (req, res) => {
         messages: [{ role: "user", content: prompt }],
         max_tokens: 150,
       });
+      console.log(gptResponse.choices[0].message.content)
 
       const generatedNotes = gptResponse.choices[0].message.content
         .trim()
@@ -180,7 +185,7 @@ app.post("/transcribe", async (req, res) => {
             [vodId, noteText, start, bulletOrder]
           );
 
-          parentNoteId = note.rows[0].note_id; // Use the main point as the parent for sub-points
+          parentNoteId = note.rows[0].note_id;
           bulletOrder++;
         } else if (line.startsWith("  -")) {
           const subNoteText = line.replace(/^ {2}- /, "").trim();
@@ -194,6 +199,8 @@ app.post("/transcribe", async (req, res) => {
 
           bulletOrder++;
         }
+
+        console.log("Inserted into db");
       }
     }
 
@@ -259,11 +266,11 @@ app.post("/login", async (req, res) => {
 
 // Add VOD
 app.post("/add-vod", async (req, res) => {
-  console.log("Received a request at /add-vod"); // Log when the endpoint is hit
+  console.log("Received a request at /add-vod");
   try {
     const { id, title, video_url } = req.body;
 
-    console.log("Received data:", { id, title, video_url }); // Log received data
+    console.log("Received data:", { id, title, video_url }); 
 
     // Check for missing fields
     if (!id || !title || !video_url) {
@@ -276,13 +283,13 @@ app.post("/add-vod", async (req, res) => {
       [id, title, video_url]
     );
 
-    console.log("VOD added to database:", result.rows[0]); // Log the inserted row
+    console.log("VOD added to database:", result.rows[0]); 
 
     res
       .status(201)
       .json({ message: "VOD added successfully", vod: result.rows[0] });
   } catch (error) {
-    console.error("Error adding VOD:", error); // Log the error
+    console.error("Error adding VOD:", error); 
     res.status(500).json({ error: "Failed to add VOD" });
   }
 });
@@ -304,20 +311,6 @@ app.post("/add-note", async (req, res) => {
   }
 });
 
-// Function that verifies user based on Google OAuth token
-async function verify(userToken) {
-  try {
-    const ticket = await oauth_client.verifyIdToken({
-      idToken: userToken,
-      audience: process.env.OAUTH_CLIENT_ID,
-    });
-    const payload = ticket.getPayload();
-    return payload;
-  } catch (err) {
-    console.error("Error verifying ID token:", err);
-    return null;
-  }
-}
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
