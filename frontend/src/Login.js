@@ -22,7 +22,7 @@ function Login() {
 
     return () => {
       authListener.subscription.unsubscribe();
-    }
+    };
   }, []);
 
   const handleSubmit = async (e) => {
@@ -36,19 +36,6 @@ function Login() {
 
     if (error) {
       console.error("Error signing in:", error.message);
-    }
-  };
-
-  const handleForgotPassword = async (e) => {
-    e.preventDefault();
-
-    // Implement Supabase forgot password
-    const { data, error } = await supabase.auth.api.resetPasswordForEmail(
-      email
-    );
-
-    if (error) {
-      console.error("Error resetting password:", error.message);
     }
   };
 
@@ -97,11 +84,6 @@ function Login() {
               required
             />
           </div>
-          <div className="text-right">
-            <a href="#" className="text-sm text-yellow-800 hover:underline">
-              Forgot password?
-            </a>
-          </div>
           <button
             type="submit"
             className="w-full py-2 font-semibold text-yellow-900 bg-yellow-200 rounded-full hover:bg-yellow-300"
@@ -115,7 +97,7 @@ function Login() {
             type="button"
             onClick={handleGoogleLogin}
             className="flex items-center justify-center w-full py-2 mt-4 space-x-2 text-white bg-black rounded-full hover:bg-gray-800"
-            >
+          >
             <img
               src="https://img.icons8.com/color/16/000000/google-logo.png"
               alt="Google icon"
