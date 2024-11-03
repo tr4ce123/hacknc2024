@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { FaPlus, FaTrash } from "react-icons/fa";
+import { FaPlus, FaTrash, FaSignOutAlt } from "react-icons/fa";
 import axios from "axios";
 import boltLogo from "./assets/lightningBolt.png";
 import { supabase } from "./supabaseClient";
@@ -282,6 +282,15 @@ function Home() {
         </ul>
       </div>
 
+      {/* Sign Out Button */}
+      <button
+        onClick={toggleSignOutModal}
+        className="absolute bottom-4 left-4 text-yellow-900 hover:text-yellow-600"
+        title="Sign Out"
+      >
+        <FaSignOutAlt size={24} />
+      </button>
+
       {/* Video Player (Center) */}
       <div className="w-3/6 flex flex-col items-center">
         <img src={boltLogo} alt="Bolt Logo" className="w-24 h-24 mb-4" />
@@ -307,18 +316,6 @@ function Home() {
         {/* Header with Title and Avatar */}
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold text-yellow-900">Notes</h2>
-          <div
-            className="avatar cursor-pointer"
-            onClick={toggleSignOutModal}
-            title="Sign Out"
-          >
-            <div className="ring-primary ring-offset-base-100 w-12 rounded-full ring ring-offset-2">
-              <img
-                src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp"
-                alt="User Avatar"
-              />
-            </div>
-          </div>
         </div>
 
         {/* Notes Content */}
