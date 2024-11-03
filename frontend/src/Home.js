@@ -116,6 +116,8 @@ function Home() {
     fetchVods();
   }, []);
 
+
+
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (event, session) => {
@@ -132,22 +134,21 @@ function Home() {
     };
   }, [navigate]);
 
-  useEffect(() => {
-    const fetchNotes = async () => {
-      if (currentVodId) {
-        try {
-          const response = await axios.get(
-            `${backendURL}/notes/${currentVodId}`
-          );
-          setNotes(response.data);
-        } catch (err) {
-          console.error("Error fetching notes:", err);
-        }
+  const fetchNotes = async () => {
+    if (currentVodId) {
+      try {
+        const response = await axios.get(
+          `${backendURL}/notes/${currentVodId}`
+        );
+        setNotes(response.data);
+      } catch (err) {
+        console.error("Error fetching notes:", err);
       }
-    };
-
+    }
+  };
+  useEffect(() => {
     fetchNotes();
-  }, [currentVodId, notes]);
+  }, [currentVodId]);
 
   const toggleModal = () => setIsModalOpen(!isModalOpen);
 
@@ -233,15 +234,6 @@ function Home() {
         setIsModalOpen(false);
         setNewVodTitle("");
         setNewVodFile(null);
-        if (newVodFromBackend) {
-          // Use the obtained vodId in the transcription request
-          await axios.post(`${backendURL}/transcribe`, {
-            audioUrl: "https://assembly.ai/sports_injuries.mp3",
-            vodId: newVodFromBackend.vod_id, 
-          });
-        } else {
-          console.error("Added VOD not found or missing 'id'");
-        }
 
       } catch (err) {
         console.error("Unable to add VOD", err);
