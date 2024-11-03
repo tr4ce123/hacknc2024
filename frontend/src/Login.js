@@ -15,6 +15,7 @@ function Login() {
         if (event === "SIGNED_IN" && session) {
           sessionStorage.setItem("auth", "true");
           navigate("/home");
+          sessionStorage.setItem("user", session.user.id);
         }
       }
     );

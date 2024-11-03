@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { FaPlus } from "react-icons/fa";
+import { FaPlus, FaTrash } from "react-icons/fa";
 import axios from "axios";
 import boltLogo from "./assets/lightningBolt.png";
 import { supabase } from "./supabaseClient";
@@ -18,6 +18,28 @@ function Home() {
   const navigate = useNavigate();
 
   const videoRef = useRef(null);
+
+  useEffect(() => {
+    const fetchVods = async () => {
+      const user = await supabase.auth
+        .getSession()
+        .then(({ data }) => data.session.user);
+
+      if (user) {
+        try {
+          const response = await axios.get(`${backendURL}/vods/${user.id}`);
+          setVods(response.data);
+          if (response.data.length > 0) {
+            setCurrentVideoUrl(response.data[0].video_url); // Set the first VOD as the default video
+          }
+        } catch (err) {
+          console.error("Error fetching VODs:", err);
+        }
+      }
+    };
+
+    fetchVods();
+  }, []);
 
   useEffect(() => {
     const fetchVods = async () => {
@@ -76,7 +98,7 @@ function Home() {
     if (newVodTitle && newVodFile) {
       // Ensure the user is authenticated
       const session = await supabase.auth.getSession();
-      const user_id = session?.data?.session?.user?.id;
+      const user_id = sessionStorage.getItem("user");
 
       if (!user_id) {
         console.error("User not authenticated");
@@ -149,6 +171,26 @@ function Home() {
       console.log("Signed out successfully");
     }
   };
+ 
+  const handleRemoveVod = async (inputVod) => {
+    try {
+      let video_url = inputVod.video_url;
+
+      video_url = video_url.split('/vods/')[1];
+      console.log(video_url); // Prints: /videos/2a18e634-a664-48f4-b3cd-782e78ba816f/castle.mp4
+
+      await axios.delete(`${backendURL}/vods/${inputVod.vod_id}`);
+  
+      const { data, error } = await supabase.storage.from("vods").remove([video_url]);
+      if (error) {
+        console.error("Error deleting VOD from storage:", error);
+      }
+  
+    } catch (error) {
+      console.error("Error deleting VOD:", error);
+    }
+
+  }
 
   return (
     <div className="flex h-screen bg-yellow-50">
@@ -165,14 +207,25 @@ function Home() {
         </div>
         <ul className="space-y-2">
           {vods.map((vod) => (
+            console.log(vod),
             <li
               key={vod.vod_id}
-              className={`p-2 rounded shadow cursor-pointer hover:bg-yellow-200 ${
+              className={`flex justify-between items-center p-2 rounded shadow cursor-pointer hover:bg-yellow-200 ${
                 vod.video_url === currentVideoUrl ? "bg-yellow-300" : "bg-white"
               }`}
               onClick={() => changeVideo(vod.video_url)}
             >
-              {vod.title}
+              <span>{vod.title}</span>
+              <button
+                className="flex items-center justify-center w-6 h-6 bg-red-500 text-white rounded hover:bg-red-600"
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent triggering the li onClick
+                  handleRemoveVod(vod);
+                }}
+                title="Remove VOD"
+              >
+                <FaTrash size={10} />
+              </button>
             </li>
           ))}
         </ul>
