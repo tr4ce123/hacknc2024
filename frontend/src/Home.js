@@ -293,6 +293,7 @@ function Home() {
           className={`p-2 w-full text-left rounded-full hover:bg-amber-200 cursor-pointer`}
           style={{
             fontSize: `${1 - level * 0.1}rem`,
+            fontWeight: level === 0 ? "bold" : "normal",            
           }}
         >
           {level === 0 ? note.text : `- ${note.text}`}
