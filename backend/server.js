@@ -2,18 +2,17 @@ import axios from "axios";
 import bcrypt from "bcrypt";
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
-dotenv.config();
+import "dotenv/config";
 import { OAuth2Client } from "google-auth-library";
 import pkg from "pg";
 import FormData from "form-data";
-import OpenAI from "openai";
+// import { Configuration, OpenAIApi } from "openai";
 
-const configuration = new OpenAI.Configuration({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-const openai = new OpenAI.OpenAIApi(configuration);
+// const openai = new OpenAIApi(
+//   new Configuration({
+//     apiKey: process.env.OPENAI_API_KEY,
+//   })
+// );
 
 const { Pool } = pkg;
 const pool = new Pool({
@@ -89,22 +88,6 @@ app.get("/vods/:id", async (req, res) => {
   }
 });
 
-
-// Remove a vod
-app.delete("/vods/:vod_id", async (req, res) => {
-  const { vod_id } = req.params;
-
-  try {
-    const result = await pool.query("DELETE FROM vods WHERE vod_id = $1", [
-      vod_id,
-    ]);
-    res.status(200).json({ message: "VOD deleted successfully" });
-  } catch (error) {
-    console.error("Error deleting VOD:", error);
-    res.status(500).json({ error: "Failed to delete VOD" });
-  }
-})
-
 app.post("/transcribe", async (req, res) => {
   const { audioUrl, vodId } = req.body;
 
@@ -155,13 +138,13 @@ app.post("/transcribe", async (req, res) => {
         - Main point 2
       `;
 
-      const gptResponse = await openai.chat.completions.create({
+      const gptResponse = await openai.createCompletion({
         model: "gpt-4",
-        messages: [{ role: "user", content: prompt }],
+        prompt: prompt,
         max_tokens: 150,
       });
 
-      const generatedNotes = gptResponse.choices[0].message.content
+      const generatedNotes = gptResponse.data.choices[0].text
         .trim()
         .split("\n");
 
@@ -301,6 +284,20 @@ app.post("/add-note", async (req, res) => {
       .json({ message: "Note added successfully", note: result.rows[0] });
   } catch (error) {
     res.status(500).json({ error: "Failed to add note" });
+  }
+});
+
+app.get("/notes/:vod_id", async (req, res) => {
+  const { vod_id } = req.params;
+
+  try {
+    const result = await pool.query("SELECT * FROM notes WHERE vod_id = $1", [
+      vod_id,
+    ]);
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error("Error fetching notes:", error);
+    res.status(500).json({ error: "Failed to fetch notes" });
   }
 });
 
