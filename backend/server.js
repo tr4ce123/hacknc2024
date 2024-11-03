@@ -2,17 +2,18 @@ import axios from "axios";
 import bcrypt from "bcrypt";
 import express from "express";
 import cors from "cors";
-import "dotenv/config";
+import dotenv from "dotenv";
+dotenv.config();
 import { OAuth2Client } from "google-auth-library";
 import pkg from "pg";
 import FormData from "form-data";
-import { Configuration, OpenAIApi } from "openai";
+import OpenAI from "openai";
 
-const openai = new OpenAIApi(
-  new Configuration({
-    apiKey: process.env.OPENAI_API_KEY,
-  })
-);
+const configuration = new OpenAI.Configuration({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+const openai = new OpenAI.OpenAIApi(configuration);
 
 const { Pool } = pkg;
 const pool = new Pool({
@@ -138,13 +139,13 @@ app.post("/transcribe", async (req, res) => {
         - Main point 2
       `;
 
-      const gptResponse = await openai.createCompletion({
+      const gptResponse = await openai.chat.completions.create({
         model: "gpt-4",
-        prompt: prompt,
+        messages: [{ role: "user", content: prompt }],
         max_tokens: 150,
       });
 
-      const generatedNotes = gptResponse.data.choices[0].text
+      const generatedNotes = gptResponse.choices[0].message.content
         .trim()
         .split("\n");
 
