@@ -3,13 +3,12 @@ import bcrypt from "bcrypt";
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import path from 'path';
+import path from "path";
 dotenv.config();
 import { OAuth2Client } from "google-auth-library";
 import pkg from "pg";
 import FormData from "form-data";
 import OpenAI from "openai";
-
 
 const openai = new OpenAI(process.env.OPENAI_API_KEY);
 
@@ -101,7 +100,6 @@ app.get("/vods/:id", async (req, res) => {
   }
 });
 
-
 // Remove a vod
 app.delete("/vods/:vod_id", async (req, res) => {
   const { vod_id } = req.params;
@@ -115,7 +113,7 @@ app.delete("/vods/:vod_id", async (req, res) => {
     console.error("Error deleting VOD:", error);
     res.status(500).json({ error: "Failed to delete VOD" });
   }
-})
+});
 
 app.post("/transcribe", async (req, res) => {
   const { audioUrl, vodId } = req.body;
@@ -125,7 +123,7 @@ app.post("/transcribe", async (req, res) => {
   }
 
   try {
-    new URL(audioUrl)
+    new URL(audioUrl);
 
     // Step 1: Request transcription from OpenAI Whisper API
     const response = await axios.get(audioUrl, { responseType: "stream" });
@@ -159,13 +157,13 @@ app.post("/transcribe", async (req, res) => {
 
     // Step 2: Process each segment with OpenAI API to generate notes
     for (const segment of segments) {
-      const start = Math.floor(segment.start); 
+      const start = Math.floor(segment.start);
       const text = segment.text;
 
       const prompt = `
         Text: "${text}"
         
-        Generate structured notes with main points and sub-bullets. Each main point should have a timestamp.
+        Generate structured notes in chronological order with main points and sub-bullets.
         Format:
         - Main point 1
           - Sub-point 1.1
@@ -178,7 +176,7 @@ app.post("/transcribe", async (req, res) => {
         messages: [{ role: "user", content: prompt }],
         max_tokens: 150,
       });
-      console.log(gptResponse.choices[0].message.content)
+      console.log(gptResponse.choices[0].message.content);
 
       const generatedNotes = gptResponse.choices[0].message.content
         .trim()
@@ -284,7 +282,7 @@ app.post("/add-vod", async (req, res) => {
   try {
     const { id, title, video_url } = req.body;
 
-    console.log("Received data:", { id, title, video_url }); 
+    console.log("Received data:", { id, title, video_url });
 
     // Check for missing fields
     if (!id || !title || !video_url) {
@@ -297,13 +295,13 @@ app.post("/add-vod", async (req, res) => {
       [id, title, video_url]
     );
 
-    console.log("VOD added to database:", result.rows[0]); 
+    console.log("VOD added to database:", result.rows[0]);
 
     res
       .status(201)
       .json({ message: "VOD added successfully", vod: result.rows[0] });
   } catch (error) {
-    console.error("Error adding VOD:", error); 
+    console.error("Error adding VOD:", error);
     res.status(500).json({ error: "Failed to add VOD" });
   }
 });
@@ -324,7 +322,6 @@ app.post("/add-note", async (req, res) => {
     res.status(500).json({ error: "Failed to add note" });
   }
 });
-
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
