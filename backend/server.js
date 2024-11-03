@@ -89,6 +89,22 @@ app.get("/vods/:id", async (req, res) => {
   }
 });
 
+
+// Remove a vod
+app.delete("/vods/:vod_id", async (req, res) => {
+  const { vod_id } = req.params;
+
+  try {
+    const result = await pool.query("DELETE FROM vods WHERE vod_id = $1", [
+      vod_id,
+    ]);
+    res.status(200).json({ message: "VOD deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting VOD:", error);
+    res.status(500).json({ error: "Failed to delete VOD" });
+  }
+})
+
 app.post("/transcribe", async (req, res) => {
   const { audioUrl, vodId } = req.body;
 

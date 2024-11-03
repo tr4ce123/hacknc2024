@@ -174,14 +174,19 @@ function Home() {
  
   const handleRemoveVod = async (inputVod) => {
     try {
-      let video_url = inputVod.video_url;
+      const matchingVod = vods.find((vod) => vod.video_url === inputVod.video_url);
 
-      video_url = video_url.split('/vods/')[1];
-      console.log(video_url); // Prints: /videos/2a18e634-a664-48f4-b3cd-782e78ba816f/castle.mp4
+      // Check if a matching VOD was found
+      if (!matchingVod) {
+        console.error("VOD not found");
+        return;
+      }
 
-      await axios.delete(`${backendURL}/vods/${inputVod.vod_id}`);
+      const url = matchingVod.video_url.split('/vods/')[1];
+
+      await axios.delete(`${backendURL}/vods/${matchingVod.vod_id}`);
   
-      const { data, error } = await supabase.storage.from("vods").remove([video_url]);
+      const { data, error } = await supabase.storage.from("vods").remove([url]);
       if (error) {
         console.error("Error deleting VOD from storage:", error);
       }
@@ -209,7 +214,7 @@ function Home() {
           {vods.map((vod) => (
             console.log(vod),
             <li
-              key={vod.vod_id}
+              key={vod.id}
               className={`flex justify-between items-center p-2 rounded shadow cursor-pointer hover:bg-yellow-200 ${
                 vod.video_url === currentVideoUrl ? "bg-yellow-300" : "bg-white"
               }`}
