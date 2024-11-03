@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { FaUser, FaLock } from "react-icons/fa";
 import { supabase } from "./supabaseClient";
@@ -23,14 +22,12 @@ function Signup() {
 
     return () => {
       authListener.subscription.unsubscribe();
-    }
+    };
   }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Implement Supabase email/password authentication
-    const { data, error } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email,
       password,
     });
@@ -44,7 +41,7 @@ function Signup() {
   };
 
   const handleGoogleLogin = async () => {
-    const { data, error } = await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: "http://localhost:3000/auth/callback",
