@@ -10,6 +10,15 @@ import pkg from "pg";
 import FormData from "form-data";
 import OpenAI from "openai";
 
+import ffmpeg from 'fluent-ffmpeg';
+import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
+ffmpeg.setFfmpegPath(ffmpegInstaller.path);
+import { Readable } from 'stream';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const openai = new OpenAI(process.env.OPENAI_API_KEY);
 
 const { Pool } = pkg;
@@ -115,25 +124,36 @@ app.delete("/vods/:vod_id", async (req, res) => {
   }
 });
 
-app.post("/transcribe", async (req, res) => {
-  const { audioUrl, vodId } = req.body;
-
-  if (!audioUrl || !vodId) {
-    return res.status(400).json({ error: "audioUrl and vodId are required." });
-  }
-
+async function transcribeVideo(videoUrl, vodId) {
   try {
-    new URL(audioUrl);
+    // This downloads the video
+    const videoResponse = await axios.get(videoUrl, { responseType: "stream" });
 
-    // Step 1: Request transcription from OpenAI Whisper API
-    const response = await axios.get(audioUrl, { responseType: "stream" });
-    const urlPath = new URL(audioUrl).pathname;
-    const filename = path.basename(urlPath) || "audio.mp3";
+    const tempVidPath = path.join(__dirname, `temp_video_${vodId}.mp4`);
+    const tempVidWriter = fs.createWriteStream(tempVidPath);
+    videoResponse.data.pipe(tempVidWriter);
+
+    await new Promise((resolve, reject) => {
+      tempVidWriter.on('finish', resolve);
+      tempVidWriter.on('error', reject);
+    });
+    
+    const tempAudioPath = path.join(__dirname, `temp_audio_${vodId}.mp3`);
+
+    await new Promise((resolve, reject) => {
+      ffmpeg(tempVidPath)
+        .output(tempAudioPath)
+        .on('end', resolve)
+        .on('error', reject)
+        .run();
+    });
+
+    const audioData = fs.createReadStream(tempAudioPath);
 
     const formData = new FormData();
-    formData.append("file", response.data, {
-      filename: filename,
-      contentType: response.headers["content-type"] || "audio/mpeg",
+    formData.append("file", audioData, {
+      filename: 'audio.mp3',
+      contentType: "audio/mpeg",
     });
     formData.append("model", "whisper-1");
     formData.append("response_format", "verbose_json");
@@ -153,9 +173,8 @@ app.post("/transcribe", async (req, res) => {
 
     console.log(transcriptionResponse.data);
     const segments = transcriptionResponse.data.segments;
-    const notes = [];
 
-    // Step 2: Process each segment with OpenAI API to generate notes
+    // Process each segment with OpenAI API to generate notes
     for (const segment of segments) {
       const start = Math.floor(segment.start);
       const text = segment.text;
@@ -216,16 +235,16 @@ app.post("/transcribe", async (req, res) => {
       }
     }
 
-    res
-      .status(200)
-      .json({ message: "Notes generated and saved successfully." });
-  } catch (error) {
-    console.error("Error during transcription or note generation:", error);
-    res.status(500).json({
-      error: "An error occurred during transcription and note processing.",
-    });
-  }
-});
+      // Clean up temporary files
+      fs.unlinkSync(tempVidPath);
+      fs.unlinkSync(tempAudPath);
+
+      console.log('Transcription and note generation completed successfully.');
+    } catch (error) {
+      console.error('Error during transcription process:', error);
+    }
+  
+};
 
 // User registration
 app.post("/register", async (req, res) => {
@@ -296,6 +315,8 @@ app.post("/add-vod", async (req, res) => {
     );
 
     console.log("VOD added to database:", result.rows[0]);
+
+    transcribeVideo(video_url, result.rows[0].vod_id);
 
     res
       .status(201)
