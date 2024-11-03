@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { FaPlus, FaTrash } from "react-icons/fa";
+import { FaPlus, FaTrash, FaSignOutAlt } from "react-icons/fa";
 import axios from "axios";
 import boltLogo from "./assets/lightningBolt.png";
 import { supabase } from "./supabaseClient";
@@ -9,15 +9,89 @@ const backendURL = process.env.REACT_APP_BACKEND_URL;
 
 function Home() {
   const [vods, setVods] = useState([]);
+  const [notes, setNotes] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newVodTitle, setNewVodTitle] = useState("");
   const [newVodFile, setNewVodFile] = useState(null);
   const [currentVideoUrl, setCurrentVideoUrl] = useState(null); // Initialize to null
   const [isSignOutModalOpen, setIsSignOutModalOpen] = useState(false);
+  const [currentVodId, setCurrentVodId] = useState(null);
   const toggleSignOutModal = () => setIsSignOutModalOpen(!isSignOutModalOpen);
   const navigate = useNavigate();
 
   const videoRef = useRef(null);
+
+  const [leftWidth, setLeftWidth] = useState(15);
+  const [centerWidth, setCenterWidth] = useState(55);
+  const [rightWidth, setRightWidth] = useState(30);
+
+  // Refs to track resizing
+  const isResizingLeft = useRef(false);
+  const isResizingRight = useRef(false);
+
+  // Mouse event handlers for resizing
+  const handleMouseDown = (e, direction) => {
+    e.preventDefault();
+    if (direction === "left") {
+      isResizingLeft.current = true;
+    } else if (direction === "right") {
+      isResizingRight.current = true;
+    }
+  };
+
+  const handleMouseMove = (e) => {
+    if (isResizingLeft.current) {
+      const deltaX = e.movementX;
+      const totalWidth = window.innerWidth;
+      let newLeftWidth =
+        (((leftWidth * totalWidth) / 100 + deltaX) / totalWidth) * 100;
+      let newCenterWidth =
+        (((centerWidth * totalWidth) / 100 - deltaX) / totalWidth) * 100;
+
+      if (newLeftWidth < 10) {
+        newLeftWidth = 10;
+        newCenterWidth = leftWidth + centerWidth - 10;
+      } else if (newCenterWidth < 10) {
+        newCenterWidth = 10;
+        newLeftWidth = leftWidth + centerWidth - 10;
+      }
+
+      setLeftWidth(newLeftWidth);
+      setCenterWidth(newCenterWidth);
+    } else if (isResizingRight.current) {
+      const deltaX = -e.movementX;
+      const totalWidth = window.innerWidth;
+      let newRightWidth =
+        (((rightWidth * totalWidth) / 100 + deltaX) / totalWidth) * 100;
+      let newCenterWidth =
+        (((centerWidth * totalWidth) / 100 - deltaX) / totalWidth) * 100;
+
+      if (newRightWidth < 10) {
+        newRightWidth = 10;
+        newCenterWidth = centerWidth + rightWidth - 10;
+      } else if (newCenterWidth < 10) {
+        newCenterWidth = 10;
+        newRightWidth = centerWidth + rightWidth - 10;
+      }
+
+      setRightWidth(newRightWidth);
+      setCenterWidth(newCenterWidth);
+    }
+  };
+
+  const handleMouseUp = () => {
+    isResizingLeft.current = false;
+    isResizingRight.current = false;
+  };
+
+  useEffect(() => {
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  });
 
   useEffect(() => {
     const fetchVods = async () => {
@@ -31,6 +105,7 @@ function Home() {
           setVods(response.data);
           if (response.data.length > 0) {
             setCurrentVideoUrl(response.data[0].video_url); // Set the first VOD as the default video
+            setCurrentVodId(response.data[0].vod_id);
           }
         } catch (err) {
           console.error("Error fetching VODs:", err);
@@ -42,26 +117,6 @@ function Home() {
   }, []);
 
   useEffect(() => {
-    const fetchVods = async () => {
-      const user = await supabase.auth
-        .getSession()
-        .then(({ data }) => data.session.user);
-
-      if (user) {
-        try {
-          const response = await axios.get(`${backendURL}/vods/${user.id}`);
-          setVods(response.data);
-          if (response.data.length > 0) {
-            setCurrentVideoUrl(response.data[0].video_url); // Set the first VOD as the default video
-          }
-        } catch (err) {
-          console.error("Error fetching VODs:", err);
-        }
-      }
-    };
-
-    fetchVods();
-
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (event, session) => {
         console.log(event, session);
@@ -77,10 +132,28 @@ function Home() {
     };
   }, [navigate]);
 
+  useEffect(() => {
+    const fetchNotes = async () => {
+      if (currentVodId) {
+        try {
+          const response = await axios.get(
+            `${backendURL}/notes/${currentVodId}`
+          );
+          setNotes(response.data);
+        } catch (err) {
+          console.error("Error fetching notes:", err);
+        }
+      }
+    };
+
+    fetchNotes();
+  }, [currentVodId]);
+
   const toggleModal = () => setIsModalOpen(!isModalOpen);
 
-  const changeVideo = (url) => {
-    setCurrentVideoUrl(url);
+  const changeVideo = (vod) => {
+    setCurrentVideoUrl(vod.video_url);
+    setCurrentVodId(vod.vod_id);
     if (videoRef.current) {
       videoRef.current.load();
     }
@@ -128,7 +201,7 @@ function Home() {
         const filePath = `videos/${user_id}/${sanitizedFileName}`;
         console.log("filePath for getPublicUrl:", filePath);
         const filePayload = supabase.storage
-          .from('vods')
+          .from("vods")
           .getPublicUrl(filePath);
 
         if (!filePayload.data) {
@@ -141,7 +214,6 @@ function Home() {
           title: newVodTitle,
           video_url: filePayload.data.publicUrl,
         };
-
 
         // Insert the video metadata into the backend database
         await axios.post(`${backendURL}/add-vod`, newVod);
@@ -160,7 +232,7 @@ function Home() {
 
   const handleSignOut = async (e) => {
     e.preventDefault();
-
+    
     const { error } = await supabase.auth.signOut();
 
     if (error) {
@@ -171,10 +243,12 @@ function Home() {
       console.log("Signed out successfully");
     }
   };
- 
+
   const handleRemoveVod = async (inputVod) => {
     try {
-      const matchingVod = vods.find((vod) => vod.video_url === inputVod.video_url);
+      const matchingVod = vods.find(
+        (vod) => vod.video_url === inputVod.video_url
+      );
 
       // Check if a matching VOD was found
       if (!matchingVod) {
@@ -182,25 +256,48 @@ function Home() {
         return;
       }
 
-      const url = matchingVod.video_url.split('/vods/')[1];
+      const url = matchingVod.video_url.split("/vods/")[1];
 
       await axios.delete(`${backendURL}/vods/${matchingVod.vod_id}`);
-  
+
       const { data, error } = await supabase.storage.from("vods").remove([url]);
       if (error) {
         console.error("Error deleting VOD from storage:", error);
       }
-  
     } catch (error) {
       console.error("Error deleting VOD:", error);
     }
+  };
 
-  }
+  const renderNote = (note) => {
+    const isSubNote = note.parent_note_id !== null;
+
+    return (
+      <button
+        key={note.note_id}
+        onClick={() => seekToTimestamp(note.timestamp)}
+        className={`p-2 w-full text-left rounded-full ${
+          isSubNote ? "pl-6" : "pl-4"
+        } hover:bg-amber-200 cursor-pointer`}
+        style={{
+          marginLeft: isSubNote ? "1.5rem" : "0",
+          fontSize: isSubNote ? "0.9rem" : "1.0rem",
+          width: isSubNote ? "calc(100% - 1.5rem)" : "100%",
+        }}
+      >
+        - {note.text}
+      </button>
+    );
+  };
 
   return (
     <div className="flex h-screen bg-yellow-50">
       {/* Left Sidebar (VODs) */}
-      <div className="w-1/4 p-4 bg-yellow-100 border-r border-yellow-300">
+      <div
+        style={{ width: `${leftWidth}%` }}
+        className="p-4 bg-yellow-100 border-r border-yellow-300 overflow-auto"
+      >
+        {/* Left Sidebar Content */}
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold text-yellow-900">VODs</h2>
           <button
@@ -212,19 +309,18 @@ function Home() {
         </div>
         <ul className="space-y-2">
           {vods.map((vod) => (
-            console.log(vod),
             <li
-              key={vod.id}
+              key={vod.vod_id}
               className={`flex justify-between items-center p-2 rounded shadow cursor-pointer hover:bg-yellow-200 ${
                 vod.video_url === currentVideoUrl ? "bg-yellow-300" : "bg-white"
               }`}
-              onClick={() => changeVideo(vod.video_url)}
+              onClick={() => changeVideo(vod)}
             >
               <span>{vod.title}</span>
               <button
-                className="flex items-center justify-center w-6 h-6 bg-red-500 text-white rounded hover:bg-red-600"
+                className="flex items-center justify-center w-6 h-6 bg-orange-900 text-white rounded hover:bg-red-600"
                 onClick={(e) => {
-                  e.stopPropagation(); // Prevent triggering the li onClick
+                  e.stopPropagation();
                   handleRemoveVod(vod);
                 }}
                 title="Remove VOD"
@@ -235,11 +331,27 @@ function Home() {
           ))}
         </ul>
       </div>
+      {/* Resizer Bar for Left */}
+      <div
+        onMouseDown={(e) => handleMouseDown(e, "left")}
+        className="w-1 bg-gray-400 cursor-col-resize"
+      />
+      {/* Sign Out Button */}
+      <button
+        onClick={toggleSignOutModal}
+        className="absolute bottom-4 left-4 text-yellow-900 hover:text-yellow-600"
+        title="Sign Out"
+      >
+        <FaSignOutAlt size={24} />
+      </button>
 
       {/* Video Player (Center) */}
-      <div className="w-2/4 flex flex-col items-center">
+      <div
+        style={{ width: `${centerWidth}%` }}
+        className="flex flex-col items-center overflow-auto"
+      >
         <img src={boltLogo} alt="Bolt Logo" className="w-24 h-24 mb-4" />
-        <div className="relative w-3/4 h-3/4 rounded-lg shadow-lg overflow-hidden border border-gray-300 bg-black custom-video-border">
+        <div className="relative w-5/6 h-3/4 rounded-lg shadow-lg overflow-hidden border border-gray-300 bg-black custom-video-border">
           {currentVideoUrl ? (
             <video
               key={currentVideoUrl}
@@ -255,52 +367,30 @@ function Home() {
           )}
         </div>
       </div>
-
+      {/* Resizer Bar for Right */}
+      <div
+        onMouseDown={(e) => handleMouseDown(e, "right")}
+        className="w-1 bg-gray-400 cursor-col-resize"
+      />
       {/* Right Sidebar */}
-      <div className="w-1/4 p-4 bg-yellow-100 border-l border-yellow-300 notes">
+      <div
+        style={{ width: `${rightWidth}%` }}
+        className="p-4 bg-yellow-100 border-l border-yellow-300 overflow-auto"
+      >
+        {/* Right Sidebar Content */}
         {/* Header with Title and Avatar */}
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold text-yellow-900">Notes</h2>
-          <div
-            className="avatar cursor-pointer"
-            onClick={toggleSignOutModal}
-            title="Sign Out"
-          >
-            <div className="ring-primary ring-offset-base-100 w-12 rounded-full ring ring-offset-2">
-              <img
-                src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp"
-                alt="User Avatar"
-              />
-            </div>
-          </div>
         </div>
-
         {/* Notes Content */}
-        <div className="space-y-2 text-yellow-900">
-          <ul className="list-none pl-4">
-            <li className="custom-bullet">
-              Summarizes lectures to <strong>quickly learn material</strong>.
-            </li>
-            <li className="custom-bullet">
-              Summarizes work meetings to{" "}
-              <strong>easily define responsibilities</strong>.
-            </li>
-            <li className="custom-bullet">
-              Timestamps for key points in meeting:
-              <ul className="list-none pl-6">
-                <li className="sub-bullet">
-                  <span
-                    onClick={() => seekToTimestamp(10)}
-                    className="text-blue-600 cursor-pointer hover:underline"
-                  >
-                    Can be clicked to immediately jump user to that point in the
-                    meeting
-                  </span>
-                </li>
-              </ul>
-            </li>
-            <li className="custom-bullet">Full tool for video analysis.</li>
-          </ul>
+        <div className="flex-grow overflow-y-auto space-y-2 text-yellow-900">
+          {notes.length > 0 ? (
+            <ul className="list-none pl-4">
+              {notes.map((note) => renderNote(note))}
+            </ul>
+          ) : (
+            <p>No notes available for this VOD.</p>
+          )}
         </div>
       </div>
 
@@ -322,7 +412,6 @@ function Home() {
                   onChange={(e) => setNewVodTitle(e.target.value)}
                 />
               </div>
-
               <div className="mb-4">
                 <label className="block text-yellow-800 mb-1">
                   Upload MP4 File
@@ -354,7 +443,7 @@ function Home() {
         </div>
       )}
 
-      {/* Modal for signing out */}
+      {/* Modal for Signing Out */}
       {isSignOutModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
           <div className="w-1/3 p-6 bg-white rounded-lg shadow-lg">
