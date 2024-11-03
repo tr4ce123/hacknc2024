@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaUser, FaLock } from "react-icons/fa";
 import { supabase } from "./supabaseClient";
-import { useEffect } from "react";
+import background from "./assets/background.jpg";
 
 function Signup() {
   const [email, setEmail] = useState("");
@@ -54,8 +54,12 @@ function Signup() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-yellow-50">
-      <div className="w-full max-w-md p-8 space-y-4 bg-yellow-100 rounded-lg shadow-lg">
+    <div
+      className="flex items-center justify-center min-h-screen bg-cover bg-center relative"
+      style={{ backgroundImage: `url(${background})` }}
+    >
+      <div className="absolute inset-0 bg-black opacity-70"></div>
+      <div className="relative w-full max-w-md p-8 space-y-4 bg-yellow-100 bg-opacity-90 rounded-lg shadow-lg">
         <h2 className="text-3xl font-bold text-center text-yellow-900">
           Sign Up
         </h2>
@@ -87,7 +91,7 @@ function Signup() {
           </div>
           <button
             type="submit"
-            className="w-full py-2 font-semibold text-yellow-900 bg-yellow-200 rounded-full hover:bg-yellow-300"
+            className="w-full py-2 font-semibold text-yellow-900 bg-yellow-200 rounded-full hover:bg-yellow-300 transition duration-200"
           >
             Sign Up
           </button>
@@ -98,7 +102,7 @@ function Signup() {
         <button
           type="button"
           onClick={handleGoogleLogin}
-          className="flex items-center justify-center w-full py-2 mt-4 space-x-2 text-white bg-black rounded-full hover:bg-gray-800"
+          className="flex items-center justify-center w-full py-2 mt-4 space-x-2 text-white bg-black rounded-full hover:bg-gray-800 transition duration-200"
         >
           <img
             src="https://img.icons8.com/color/16/000000/google-logo.png"

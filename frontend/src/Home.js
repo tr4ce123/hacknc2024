@@ -13,7 +13,7 @@ function Home() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newVodTitle, setNewVodTitle] = useState("");
   const [newVodFile, setNewVodFile] = useState(null);
-  const [currentVideoUrl, setCurrentVideoUrl] = useState(null); // Initialize to null
+  const [currentVideoUrl, setCurrentVideoUrl] = useState(null);
   const [isSignOutModalOpen, setIsSignOutModalOpen] = useState(false);
   const [currentVodId, setCurrentVodId] = useState(null);
   const toggleSignOutModal = () => setIsSignOutModalOpen(!isSignOutModalOpen);
@@ -165,7 +165,7 @@ function Home() {
     e.preventDefault();
     if (newVodTitle && newVodFile) {
       const session = await supabase.auth.getSession();
-      const user_id = sessionStorage.getItem("user");
+      const user_id = session.data.session.user.id;
 
       if (!user_id) {
         console.error("User not authenticated");
@@ -191,9 +191,7 @@ function Home() {
 
         const filePath = `videos/${user_id}/${sanitizedFileName}`;
         console.log("filePath for getPublicUrl:", filePath);
-        const filePayload = supabase.storage
-          .from("vods")
-          .getPublicUrl(filePath);
+        const filePayload = supabase.storage.from("vods").getPublicUrl(filePath);
 
         if (!filePayload.data) {
           console.error("Error getting public URL");
@@ -285,7 +283,7 @@ function Home() {
 
   const renderNote = (note, level = 0) => {
     const hasChildren = notes.some((n) => n.parent_note_id === note.note_id);
-  
+
     return (
       <div key={note.note_id} style={{ marginLeft: `${level * 1.5}rem` }}>
         <button
@@ -293,7 +291,7 @@ function Home() {
           className={`p-2 w-full text-left rounded-full hover:bg-amber-200 cursor-pointer`}
           style={{
             fontSize: `${1 - level * 0.1}rem`,
-            fontWeight: level === 0 ? "bold" : "normal",            
+            fontWeight: level === 0 ? "bold" : "normal",
           }}
         >
           {level === 0 ? note.text : `- ${note.text}`}
@@ -306,9 +304,10 @@ function Home() {
       </div>
     );
   };
-  
+
   return (
     <div className="flex h-screen bg-yellow-50">
+      {/* Left Sidebar */}
       <div
         style={{ width: `${leftWidth}%` }}
         className="p-4 bg-yellow-100 border-r border-yellow-300 overflow-auto"
@@ -326,14 +325,14 @@ function Home() {
           {vods.map((vod) => (
             <li
               key={vod.vod_id}
-              className={`flex justify-between items-center p-2 rounded shadow cursor-pointer hover:bg-yellow-200 ${
+              className={`flex justify-between items-center p-2 rounded-xl shadow cursor-pointer hover:bg-yellow-200 ${
                 vod.video_url === currentVideoUrl ? "bg-yellow-300" : "bg-white"
               }`}
               onClick={() => changeVideo(vod)}
             >
               <span>{vod.title}</span>
               <button
-                className="flex items-center justify-center w-6 h-6 bg-orange-900 text-white rounded hover:bg-red-600"
+                className="flex items-center justify-center w-6 h-6 bg-red-600 text-white rounded-full hover:bg-red-600"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleRemoveVod(vod);
@@ -360,21 +359,24 @@ function Home() {
 
       <div
         style={{ width: `${centerWidth}%` }}
-        className="flex flex-col items-center overflow-auto"
+        className="flex flex-col items-center justify-between h-full p-4"
       >
-        <img src={boltLogo} alt="Bolt Logo" className="w-24 h-24 mb-4" />
-        <div className="relative w-5/6 h-3/4 rounded-lg shadow-lg overflow-hidden border border-gray-300 bg-black custom-video-border">
-          {currentVideoUrl ? (
-            <video
-              key={currentVideoUrl}
-              ref={videoRef}
-              src={currentVideoUrl}
-              controls
-              className="w-full h-full rounded-lg"
-            />
-          ) : (
-            <p className="text-white text-center mt-4"></p>
-          )}
+        <img src={boltLogo} alt="Bolt Logo" className="w-24 h-24" />
+
+        <div className="flex-grow flex items-center justify-center">
+          <div className="relative w-5/6 rounded-lg shadow-lg overflow-hidden border border-gray-300 bg-black custom-video-border">
+            {currentVideoUrl ? (
+              <video
+                key={currentVideoUrl}
+                ref={videoRef}
+                src={currentVideoUrl}
+                controls
+                className="w-full rounded-lg"
+              />
+            ) : (
+              <p className="text-white text-center mt-4">No video selected.</p>
+            )}
+          </div>
         </div>
       </div>
       <div
@@ -402,6 +404,7 @@ function Home() {
         </div>
       </div>
 
+      {/* Add VOD Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
           <div className="w-1/3 p-6 bg-white rounded-lg shadow-lg">
@@ -417,6 +420,7 @@ function Home() {
                   placeholder="Enter title"
                   value={newVodTitle}
                   onChange={(e) => setNewVodTitle(e.target.value)}
+                  required
                 />
               </div>
               <div className="mb-4">
@@ -428,6 +432,7 @@ function Home() {
                   accept="video/mp4"
                   className="w-full px-3 py-2 border border-yellow-300 rounded"
                   onChange={(e) => setNewVodFile(e.target.files[0])}
+                  required
                 />
               </div>
               <div className="flex justify-end space-x-2">
@@ -450,6 +455,7 @@ function Home() {
         </div>
       )}
 
+      {/* Sign Out Confirmation Modal */}
       {isSignOutModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
           <div className="w-1/3 p-6 bg-white rounded-lg shadow-lg">
