@@ -3,7 +3,7 @@ import bcrypt from "bcrypt";
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import path from "path";
+import path from 'path';
 dotenv.config();
 import { OAuth2Client } from "google-auth-library";
 import pkg from "pg";
@@ -109,6 +109,7 @@ app.get("/vods/:id", async (req, res) => {
   }
 });
 
+
 // Remove a vod
 app.delete("/vods/:vod_id", async (req, res) => {
   const { vod_id } = req.params;
@@ -122,7 +123,7 @@ app.delete("/vods/:vod_id", async (req, res) => {
     console.error("Error deleting VOD:", error);
     res.status(500).json({ error: "Failed to delete VOD" });
   }
-});
+})
 
 async function transcribeVideo(videoUrl, vodId) {
   try {
@@ -137,7 +138,7 @@ async function transcribeVideo(videoUrl, vodId) {
       tempVidWriter.on('finish', resolve);
       tempVidWriter.on('error', reject);
     });
-    
+
     const tempAudioPath = path.join(__dirname, `temp_audio_${vodId}.mp3`);
 
     await new Promise((resolve, reject) => {
@@ -174,70 +175,130 @@ async function transcribeVideo(videoUrl, vodId) {
     console.log(transcriptionResponse.data);
     const segments = transcriptionResponse.data.segments;
 
-    // Process each segment with OpenAI API to generate notes
-    for (const segment of segments) {
-      const start = Math.floor(segment.start);
-      const text = segment.text;
+    const chunkSize = 20; 
+    const chunks = [];
+    let currentChunk = { start: 0, end: 0, text: '' };
 
+    for (const segment of segments) {
+      if (currentChunk.text === '') {
+        currentChunk.start = segment.start;
+      }
+
+      currentChunk.end = segment.end;
+      currentChunk.text += ' ' + segment.text;
+
+      if (currentChunk.end - currentChunk.start >= chunkSize) {
+        chunks.push({ ...currentChunk });
+        currentChunk = { start: currentChunk.end, end: currentChunk.end, text: '' };
+      }
+    }
+
+    // Residual text
+    if (currentChunk.text !== '') {
+      chunks.push({ ...currentChunk });
+    }
+
+    console.log(`Total chunks created: ${chunks.length}`);
+
+    // Each chunk is getting processed here because we can't fit the whole thing in one query
+    for (let i = 0; i < chunks.length; i++) {
+      const chunk = chunks[i];
+      const start = Math.floor(chunk.start);
+      const text = chunk.text;
+
+      let bulletOrder = 1;
+    
+      console.log(`Processing chunk ${i + 1}/${chunks.length}, start time: ${start}s`);
+    
+      const numTokens = text.split(' ').length;
+      if (numTokens > 2000) {
+        console.warn(`Chunk ${i + 1} exceeds token limit, reducing chunk size.`);
+        continue;
+      }
+    
       const prompt = `
         Text: "${text}"
-        
-        Generate structured notes in chronological order with main points and sub-bullets.
+    
+        Pretend you are writing notes for a college student.
+        From the text above, first extract a concise 'Main Chunk Concept' that summarizes the central idea of the text into three to five words.
+        Do not say "the text says" or "the text is about" in the summary. You are taking notes for a college student on a video that has been transalated into text.
+    
+        Then, generate structured notes with main points and sub-points in the following format:
+    
         Format:
+        Main Chunk Concept: [Main concept here]
+
+        Note: do not literally put 'Main point 1', 'Sub-point 1.1', etc. in the notes.
+    
         - Main point 1
           - Sub-point 1.1
           - Sub-point 1.2
         - Main point 2
       `;
-
+    
       const gptResponse = await openai.chat.completions.create({
         model: "gpt-4",
         messages: [{ role: "user", content: prompt }],
-        max_tokens: 150,
+        max_tokens: 200,
       });
-      console.log(gptResponse.choices[0].message.content);
-
-      const generatedNotes = gptResponse.choices[0].message.content
-        .trim()
-        .split("\n");
-
-      // Step 3: Convert generated notes into database entries
-      let bulletOrder = 1;
+    
+      const responseContent = gptResponse.choices[0].message.content.trim();
+      const lines = responseContent.split('\n');
+    
+      let mainChunkConcept = '';
+      let notesLines = [];
+      let inNotes = false;
+    
+      for (let line of lines) {
+        if (line.startsWith('Main Chunk Concept:')) {
+          mainChunkConcept = line.replace('Main Chunk Concept:', '').trim();
+        } else if (line.startsWith('-') || line.startsWith('  -')) {
+          inNotes = true;
+          notesLines.push(line);
+        } else if (inNotes && line.trim() === '') {
+          
+        }
+      }
+    
+      // Insert the Main Chunk Concept
+      const chunkNoteResult = await pool.query(
+        `INSERT INTO public.notes (vod_id, text, timestamp, bullet_order)
+        VALUES ($1, $2, $3, $4) RETURNING note_id`,
+        [vodId, mainChunkConcept, start, bulletOrder]
+      );
+      const chunkNoteId = chunkNoteResult.rows[0].note_id;
+      bulletOrder++;
+    
+      // Insert the structured notes
       let parentNoteId = null;
-
-      for (const line of generatedNotes) {
-        if (line.startsWith("-")) {
-          const noteText = line.replace(/^- /, "").trim();
-
-          // Insert main point into database
+    
+      for (const line of notesLines) {
+        if (line.startsWith('- ')) {
+          const noteText = line.replace(/^- /, '').trim();
+    
           const note = await pool.query(
-            `INSERT INTO public.notes (vod_id, text, timestamp, bullet_order)
-            VALUES ($1, $2, $3, $4) RETURNING note_id`,
-            [vodId, noteText, start, bulletOrder]
+            `INSERT INTO public.notes (vod_id, text, timestamp, parent_note_id, bullet_order)
+            VALUES ($1, $2, $3, $4, $5) RETURNING note_id`,
+            [vodId, noteText, start, chunkNoteId, bulletOrder]
           );
-
           parentNoteId = note.rows[0].note_id;
           bulletOrder++;
-        } else if (line.startsWith("  -")) {
-          const subNoteText = line.replace(/^ {2}- /, "").trim();
-
-          // Insert sub-bullet with parent_note_id
+        } else if (line.startsWith('  -')) {
+          const subNoteText = line.replace(/^ {2}- /, '').trim();
+    
           await pool.query(
             `INSERT INTO public.notes (vod_id, text, timestamp, parent_note_id, bullet_order)
             VALUES ($1, $2, $3, $4, $5)`,
             [vodId, subNoteText, start, parentNoteId, bulletOrder]
           );
-
           bulletOrder++;
         }
-
-        console.log("Inserted into db");
       }
     }
-
+    
       // Clean up temporary files
       fs.unlinkSync(tempVidPath);
-      fs.unlinkSync(tempAudPath);
+      fs.unlinkSync(tempAudioPath);
 
       console.log('Transcription and note generation completed successfully.');
     } catch (error) {
@@ -301,7 +362,7 @@ app.post("/add-vod", async (req, res) => {
   try {
     const { id, title, video_url } = req.body;
 
-    console.log("Received data:", { id, title, video_url });
+    console.log("Received data:", { id, title, video_url }); 
 
     // Check for missing fields
     if (!id || !title || !video_url) {
@@ -314,7 +375,7 @@ app.post("/add-vod", async (req, res) => {
       [id, title, video_url]
     );
 
-    console.log("VOD added to database:", result.rows[0]);
+    console.log("VOD added to database:", result.rows[0]); 
 
     transcribeVideo(video_url, result.rows[0].vod_id);
 
@@ -322,7 +383,7 @@ app.post("/add-vod", async (req, res) => {
       .status(201)
       .json({ message: "VOD added successfully", vod: result.rows[0] });
   } catch (error) {
-    console.error("Error adding VOD:", error);
+    console.error("Error adding VOD:", error); 
     res.status(500).json({ error: "Failed to add VOD" });
   }
 });
@@ -343,6 +404,7 @@ app.post("/add-note", async (req, res) => {
     res.status(500).json({ error: "Failed to add note" });
   }
 });
+
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

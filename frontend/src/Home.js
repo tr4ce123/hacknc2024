@@ -300,27 +300,29 @@ function Home() {
     }
   };
 
-  const renderNote = (note) => {
-    const isSubNote = note.parent_note_id !== null;
-
+  const renderNote = (note, level = 0) => {
+    const hasChildren = notes.some((n) => n.parent_note_id === note.note_id);
+  
     return (
-      <button
-        key={note.note_id}
-        onClick={() => seekToTimestamp(note.timestamp)}
-        className={`p-2 w-full text-left rounded-full ${
-          isSubNote ? "pl-6" : "pl-4"
-        } hover:bg-amber-200 cursor-pointer`}
-        style={{
-          marginLeft: isSubNote ? "1.5rem" : "0",
-          fontSize: isSubNote ? "0.9rem" : "1.0rem",
-          width: isSubNote ? "calc(100% - 1.5rem)" : "100%",
-        }}
-      >
-        - {note.text}
-      </button>
+      <div key={note.note_id} style={{ marginLeft: `${level * 1.5}rem` }}>
+        <button
+          onClick={() => seekToTimestamp(note.timestamp)}
+          className={`p-2 w-full text-left rounded-full hover:bg-amber-200 cursor-pointer`}
+          style={{
+            fontSize: `${1 - level * 0.1}rem`,
+          }}
+        >
+          {level === 0 ? note.text : `- ${note.text}`}
+        </button>
+        {hasChildren &&
+          notes
+            .filter((n) => n.parent_note_id === note.note_id)
+            .sort((a, b) => a.bullet_order - b.bullet_order)
+            .map((childNote) => renderNote(childNote, level + 1))}
+      </div>
     );
   };
-
+  
   return (
     <div className="flex h-screen bg-yellow-50">
       {/* Left Sidebar (VODs) */}
@@ -417,7 +419,10 @@ function Home() {
         <div className="flex-grow overflow-y-auto space-y-2 text-yellow-900">
           {notes.length > 0 ? (
             <ul className="list-none pl-4">
-              {notes.map((note) => renderNote(note))}
+              {notes
+                .filter((note) => note.parent_note_id === null)
+                .sort((a, b) => a.bullet_order - b.bullet_order)
+                .map((note) => renderNote(note))}
             </ul>
           ) : (
             <p>No notes available for this VOD.</p>
