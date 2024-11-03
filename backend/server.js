@@ -10,12 +10,12 @@ import pkg from "pg";
 import FormData from "form-data";
 import OpenAI from "openai";
 
-import ffmpeg from 'fluent-ffmpeg';
-import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
+import ffmpeg from "fluent-ffmpeg";
+import ffmpegInstaller from "@ffmpeg-installer/ffmpeg";
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
-import { Readable } from 'stream';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
+import { Readable } from "stream";
+import fs from "fs";
+import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -38,7 +38,6 @@ pool
     console.log("Didn't connect");
   });
 
-// Initialize tables
 (async () => {
   try {
     await pool.query(`
@@ -71,7 +70,6 @@ const oauth_client = new OAuth2Client(process.env.OAUTH_CLIENT_ID);
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// Middleware
 app.use(express.static("public"));
 app.use(express.json());
 app.use(
@@ -96,7 +94,6 @@ app.get("/notes/:vod_id", async (req, res) => {
   }
 });
 
-// Get Vods
 app.get("/vods/:id", async (req, res) => {
   const { id } = req.params;
 
@@ -109,7 +106,6 @@ app.get("/vods/:id", async (req, res) => {
   }
 });
 
-// Remove a vod
 app.delete("/vods/:vod_id", async (req, res) => {
   const { vod_id } = req.params;
 
@@ -126,7 +122,6 @@ app.delete("/vods/:vod_id", async (req, res) => {
 
 async function transcribeVideo(videoUrl, vodId) {
   try {
-    // This downloads the video
     const videoResponse = await axios.get(videoUrl, { responseType: "stream" });
 
     const tempVidPath = path.join(__dirname, `temp_video_${vodId}.mp4`);
@@ -134,17 +129,17 @@ async function transcribeVideo(videoUrl, vodId) {
     videoResponse.data.pipe(tempVidWriter);
 
     await new Promise((resolve, reject) => {
-      tempVidWriter.on('finish', resolve);
-      tempVidWriter.on('error', reject);
+      tempVidWriter.on("finish", resolve);
+      tempVidWriter.on("error", reject);
     });
-    
+
     const tempAudioPath = path.join(__dirname, `temp_audio_${vodId}.mp3`);
 
     await new Promise((resolve, reject) => {
       ffmpeg(tempVidPath)
         .output(tempAudioPath)
-        .on('end', resolve)
-        .on('error', reject)
+        .on("end", resolve)
+        .on("error", reject)
         .run();
     });
 
@@ -152,7 +147,7 @@ async function transcribeVideo(videoUrl, vodId) {
 
     const formData = new FormData();
     formData.append("file", audioData, {
-      filename: 'audio.mp3',
+      filename: "audio.mp3",
       contentType: "audio/mpeg",
     });
     formData.append("model", "whisper-1");
@@ -174,7 +169,6 @@ async function transcribeVideo(videoUrl, vodId) {
     console.log(transcriptionResponse.data);
     const segments = transcriptionResponse.data.segments;
 
-    // Process each segment with OpenAI API to generate notes
     for (const segment of segments) {
       const start = Math.floor(segment.start);
       const text = segment.text;
@@ -201,7 +195,6 @@ async function transcribeVideo(videoUrl, vodId) {
         .trim()
         .split("\n");
 
-      // Step 3: Convert generated notes into database entries
       let bulletOrder = 1;
       let parentNoteId = null;
 
@@ -209,7 +202,6 @@ async function transcribeVideo(videoUrl, vodId) {
         if (line.startsWith("-")) {
           const noteText = line.replace(/^- /, "").trim();
 
-          // Insert main point into database
           const note = await pool.query(
             `INSERT INTO public.notes (vod_id, text, timestamp, bullet_order)
             VALUES ($1, $2, $3, $4) RETURNING note_id`,
@@ -221,7 +213,6 @@ async function transcribeVideo(videoUrl, vodId) {
         } else if (line.startsWith("  -")) {
           const subNoteText = line.replace(/^ {2}- /, "").trim();
 
-          // Insert sub-bullet with parent_note_id
           await pool.query(
             `INSERT INTO public.notes (vod_id, text, timestamp, parent_note_id, bullet_order)
             VALUES ($1, $2, $3, $4, $5)`,
@@ -235,18 +226,15 @@ async function transcribeVideo(videoUrl, vodId) {
       }
     }
 
-      // Clean up temporary files
-      fs.unlinkSync(tempVidPath);
-      fs.unlinkSync(tempAudPath);
+    fs.unlinkSync(tempVidPath);
+    fs.unlinkSync(tempAudPath);
 
-      console.log('Transcription and note generation completed successfully.');
-    } catch (error) {
-      console.error('Error during transcription process:', error);
-    }
-  
-};
+    console.log("Transcription and note generation completed successfully.");
+  } catch (error) {
+    console.error("Error during transcription process:", error);
+  }
+}
 
-// User registration
 app.post("/register", async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -269,7 +257,6 @@ app.post("/register", async (req, res) => {
   }
 });
 
-// User login
 app.post("/login", async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -295,7 +282,6 @@ app.post("/login", async (req, res) => {
   }
 });
 
-// Add VOD
 app.post("/add-vod", async (req, res) => {
   console.log("Received a request at /add-vod");
   try {
@@ -303,12 +289,10 @@ app.post("/add-vod", async (req, res) => {
 
     console.log("Received data:", { id, title, video_url });
 
-    // Check for missing fields
     if (!id || !title || !video_url) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
-    // Insert the VOD into the database
     const result = await pool.query(
       "INSERT INTO vods (id, title, video_url) VALUES ($1, $2, $3) RETURNING *",
       [id, title, video_url]
@@ -327,7 +311,6 @@ app.post("/add-vod", async (req, res) => {
   }
 });
 
-// Add Note
 app.post("/add-note", async (req, res) => {
   try {
     const { vod_id, text, timestamp, parent_note_id, bullet_order } = req.body;

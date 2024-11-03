@@ -25,11 +25,9 @@ function Home() {
   const [centerWidth, setCenterWidth] = useState(55);
   const [rightWidth, setRightWidth] = useState(30);
 
-  // Refs to track resizing
   const isResizingLeft = useRef(false);
   const isResizingRight = useRef(false);
 
-  // Mouse event handlers for resizing
   const handleMouseDown = (e, direction) => {
     e.preventDefault();
     if (direction === "left") {
@@ -104,7 +102,7 @@ function Home() {
           const response = await axios.get(`${backendURL}/vods/${user.id}`);
           setVods(response.data);
           if (response.data.length > 0) {
-            setCurrentVideoUrl(response.data[0].video_url); // Set the first VOD as the default video
+            setCurrentVideoUrl(response.data[0].video_url);
             setCurrentVodId(response.data[0].vod_id);
           }
         } catch (err) {
@@ -166,7 +164,6 @@ function Home() {
   const handleAddVod = async (e) => {
     e.preventDefault();
     if (newVodTitle && newVodFile) {
-      // Ensure the user is authenticated
       const session = await supabase.auth.getSession();
       const user_id = sessionStorage.getItem("user");
 
@@ -176,12 +173,10 @@ function Home() {
       }
 
       try {
-        // Sanitize the file name to avoid issues with spaces or special characters
         const sanitizedFileName = newVodFile.name
           .replace(/[^a-z0-9.]/gi, "_")
           .toLowerCase();
 
-        // Upload the video file to Supabase Storage
         const uploadPayload = await supabase.storage
           .from("vods")
           .upload(`videos/${user_id}/${sanitizedFileName}`, newVodFile, {
@@ -194,7 +189,6 @@ function Home() {
           return;
         }
 
-        // Get the public URL for the uploaded video
         const filePath = `videos/${user_id}/${sanitizedFileName}`;
         console.log("filePath for getPublicUrl:", filePath);
         const filePayload = supabase.storage
@@ -205,14 +199,12 @@ function Home() {
           console.error("Error getting public URL");
           return;
         }
-        // Prepare the new VOD metadata for the database
         const newVod = {
           id: user_id,
           title: newVodTitle,
           video_url: filePayload.data.publicUrl,
         };
 
-        // Insert the video metadata into the backend database
         await axios.post(`${backendURL}/add-vod`, newVod);
 
         const response = await axios.get(`${backendURL}/vods/${user_id}`);
@@ -226,7 +218,6 @@ function Home() {
         setCurrentVideoUrl(newVodFromBackend.video_url);
         setCurrentVodId(newVodFromBackend.vod_id);
 
-        // Update the local state with the new VOD
         setIsModalOpen(false);
         setNewVodTitle("");
         setNewVodFile(null);
@@ -258,7 +249,6 @@ function Home() {
 
       const user_id = sessionStorage.getItem("user");
 
-      // Check if a matching VOD was found
       if (!matchingVod) {
         console.error("VOD not found");
         return;
@@ -316,12 +306,10 @@ function Home() {
 
   return (
     <div className="flex h-screen bg-yellow-50">
-      {/* Left Sidebar (VODs) */}
       <div
         style={{ width: `${leftWidth}%` }}
         className="p-4 bg-yellow-100 border-r border-yellow-300 overflow-auto"
       >
-        {/* Left Sidebar Content */}
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold text-yellow-900">VODs</h2>
           <button
@@ -355,12 +343,10 @@ function Home() {
           ))}
         </ul>
       </div>
-      {/* Resizer Bar for Left */}
       <div
         onMouseDown={(e) => handleMouseDown(e, "left")}
         className="w-1 bg-gray-400 cursor-col-resize"
       />
-      {/* Sign Out Button */}
       <button
         onClick={toggleSignOutModal}
         className="absolute bottom-4 left-4 text-yellow-900 hover:text-yellow-600"
@@ -369,7 +355,6 @@ function Home() {
         <FaSignOutAlt size={24} />
       </button>
 
-      {/* Video Player (Center) */}
       <div
         style={{ width: `${centerWidth}%` }}
         className="flex flex-col items-center overflow-auto"
@@ -389,22 +374,17 @@ function Home() {
           )}
         </div>
       </div>
-      {/* Resizer Bar for Right */}
       <div
         onMouseDown={(e) => handleMouseDown(e, "right")}
         className="w-1 bg-gray-400 cursor-col-resize"
       />
-      {/* Right Sidebar */}
       <div
         style={{ width: `${rightWidth}%` }}
         className="p-4 bg-yellow-100 border-l border-yellow-300 overflow-auto"
       >
-        {/* Right Sidebar Content */}
-        {/* Header with Title and Avatar */}
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold text-yellow-900">Notes</h2>
         </div>
-        {/* Notes Content */}
         <div className="flex-grow overflow-y-auto space-y-2 text-yellow-900">
           {notes.length > 0 ? (
             <ul className="list-none pl-4">
@@ -416,7 +396,6 @@ function Home() {
         </div>
       </div>
 
-      {/* Modal for Adding New VOD */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
           <div className="w-1/3 p-6 bg-white rounded-lg shadow-lg">
@@ -465,7 +444,6 @@ function Home() {
         </div>
       )}
 
-      {/* Modal for Signing Out */}
       {isSignOutModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
           <div className="w-1/3 p-6 bg-white rounded-lg shadow-lg">

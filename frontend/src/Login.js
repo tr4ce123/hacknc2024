@@ -27,9 +27,7 @@ function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Implement Supabase email/password authentication
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -40,7 +38,7 @@ function Login() {
   };
 
   const handleGoogleLogin = async () => {
-    const { data, error } = await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: "http://localhost:3000/auth/callback",

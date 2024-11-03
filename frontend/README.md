@@ -1,70 +1,37 @@
-# Getting Started with Create React App
+## Inspiration
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Learning material in college can be challenging, and sifting through Panopto VODs to find the information you need can be tedious and stressful. This pain point led us to create Bolt, a multimedia tool that skips all the needless video scrubbing.
 
-## Available Scripts
+## What it does
 
-In the project directory, you can run:
+Bolt is a web application that allows users to generate notes that serve as clickable timestamps for lightning-fast video scrubbing.
 
-### `npm start`
+## How we built it
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+We built the application with React and used Supabase to handle our data. After retrieving VODs from Supabase, we used OpenAI's Whisper and GPT4 to transcribe the videos and generate the notes structure.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Challenges we ran into
 
-### `npm test`
+A few challenges we ran into include:
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+- Implementing Google OAuth
+- Handling the authorization policies and working with Supabase
+- Developing the notes pipeline
 
-### `npm run build`
+## Accomplishments that we're proud of
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Developing the notes architecture was what we felt was the feat of this project. It was pretty cool to be able to hover on a note and just click it, enabling a seamless augmentation of text with video.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## What we learned
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+- Google OAuth is infinitely easier to set up through Supabase
+- MP4 to MP3 is more challenging than we thought
+- Making multiple branches is best practice for a reason...
 
-### `npm run eject`
+## What's next for Bolt
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+Future features will possibly include:
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+- Zoom support with automatic uploads after meetings
+- Editable notes
+- Chat functionality
