@@ -25,6 +25,7 @@
     "fs": "^0.0.1-security",
     "fs-extra": "^11.2.0",
     "google-auth-library": "^9.14.2",
+    "lodash": "^4.17.21",
     "nodemon": "^3.1.7",
     "openai": "^4.70.2",
     "pg": "^8.13.1"
