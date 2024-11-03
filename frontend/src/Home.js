@@ -147,7 +147,7 @@ function Home() {
     };
 
     fetchNotes();
-  }, [currentVodId]);
+  }, [currentVodId, notes]);
 
   const toggleModal = () => setIsModalOpen(!isModalOpen);
 
