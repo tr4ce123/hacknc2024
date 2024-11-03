@@ -259,6 +259,9 @@ function Home() {
         (vod) => vod.video_url === inputVod.video_url
       );
 
+      const user_id = sessionStorage.getItem("user");
+
+
       // Check if a matching VOD was found
       if (!matchingVod) {
         console.error("VOD not found");
@@ -270,6 +273,13 @@ function Home() {
       await axios.delete(`${backendURL}/vods/${matchingVod.vod_id}`);
 
       const { data, error } = await supabase.storage.from("vods").remove([url]);
+
+      const response = await axios.get(`${backendURL}/vods/${user_id}`);
+      const updatedVods = response.data;  
+
+      setVods(updatedVods);
+
+
       if (error) {
         console.error("Error deleting VOD from storage:", error);
       }
