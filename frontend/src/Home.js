@@ -117,26 +117,6 @@ function Home() {
   }, []);
 
   useEffect(() => {
-    const fetchVods = async () => {
-      const user = await supabase.auth
-        .getSession()
-        .then(({ data }) => data.session.user);
-
-      if (user) {
-        try {
-          const response = await axios.get(`${backendURL}/vods/${user.id}`);
-          setVods(response.data);
-          if (response.data.length > 0) {
-            setCurrentVideoUrl(response.data[0].video_url); // Set the first VOD as the default video
-          }
-        } catch (err) {
-          console.error("Error fetching VODs:", err);
-        }
-      }
-    };
-
-    fetchVods();
-
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (event, session) => {
         console.log(event, session);
@@ -171,8 +151,9 @@ function Home() {
 
   const toggleModal = () => setIsModalOpen(!isModalOpen);
 
-  const changeVideo = (url) => {
-    setCurrentVideoUrl(url);
+  const changeVideo = (vod) => {
+    setCurrentVideoUrl(vod.video_url);
+    setCurrentVodId(vod.vod_id);
     if (videoRef.current) {
       videoRef.current.load();
     }
@@ -251,7 +232,7 @@ function Home() {
 
   const handleSignOut = async (e) => {
     e.preventDefault();
-
+    
     const { error } = await supabase.auth.signOut();
 
     if (error) {
@@ -329,11 +310,11 @@ function Home() {
         <ul className="space-y-2">
           {vods.map((vod) => (
             <li
-              key={vod.id}
+              key={vod.vod_id}
               className={`flex justify-between items-center p-2 rounded shadow cursor-pointer hover:bg-yellow-200 ${
                 vod.video_url === currentVideoUrl ? "bg-yellow-300" : "bg-white"
               }`}
-              onClick={() => changeVideo(vod.video_url)}
+              onClick={() => changeVideo(vod)}
             >
               <span>{vod.title}</span>
               <button
